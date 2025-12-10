@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn install:*)",
+      "Bash(yarn type-check:*)",
+      "Bash(yarn build:electron:*)",
+      "Bash(yarn build:*)",
+      "Bash(yarn add -D:*)",
+      "Bash(yarn dev:*)",
+      "Bash(node -e \"console.log(require(''electron''))\")",
+      "Bash(yarn dev:vite:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
