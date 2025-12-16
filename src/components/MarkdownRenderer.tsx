@@ -74,34 +74,54 @@ const parseMarkdown = (content: string): { html: string; isHeading: boolean } =>
 };
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ block, onEdit }) => {
-  const { html, isHeading } = parseMarkdown(block.content);
+  // 如果内容已经是 HTML 格式（从 Tiptap 编辑器来），直接使用
+  let html = block.content;
+  let isHeading = false;
+  
+  // 检查是否是 HTML 格式
+  const isHTML = block.content.includes('<') && block.content.includes('>');
+  
+  if (isHTML) {
+    // 直接使用 HTML 内容
+    html = block.content;
+    // 检查是否包含标题标签
+    isHeading = /<h[1-6]/.test(html);
+  } else {
+    // Markdown 格式，进行解析
+    const parsed = parseMarkdown(block.content);
+    html = parsed.html;
+    isHeading = parsed.isHeading;
+  }
 
   return (
     <div 
-      className={`markdown-renderer ${isHeading ? 'heading-block' : ''} border border-gray-200 rounded-md p-3 mb-3 hover:border-gray-300 transition-colors cursor-pointer`}
+      className={`markdown-renderer ${isHeading ? 'heading-block' : ''} mb-1 cursor-pointer group hover:bg-gray-50 transition-colors rounded px-1`}
       onClick={onEdit}
     >
       <div 
         className="markdown-content"
+        style={{ textAlign: 'left' }}
         dangerouslySetInnerHTML={{ __html: html }}
       />
       <style>{`
-        .markdown-content h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-        .markdown-content h2 { font-size: 1.5em; font-weight: bold; margin: 0.75em 0; }
-        .markdown-content h3 { font-size: 1.17em; font-weight: bold; margin: 0.83em 0; }
-        .markdown-content h4 { font-size: 1em; font-weight: bold; margin: 1.12em 0; }
-        .markdown-content h5 { font-size: 0.83em; font-weight: bold; margin: 1.5em 0; }
-        .markdown-content h6 { font-size: 0.75em; font-weight: bold; margin: 1.67em 0; }
-        .markdown-content p { margin: 1em 0; }
+        .markdown-content { line-height: 1.6; }
+        .markdown-content h1 { font-size: 2em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
+        .markdown-content h2 { font-size: 1.5em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
+        .markdown-content h3 { font-size: 1.17em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
+        .markdown-content h4 { font-size: 1em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
+        .markdown-content h5 { font-size: 0.83em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
+        .markdown-content h6 { font-size: 0.75em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
+        .markdown-content p { margin: 0.2em 0; line-height: 1.6; }
         .markdown-content blockquote { 
           border-left: 4px solid #ddd; 
           padding-left: 1em; 
-          margin: 1em 0; 
+          margin: 0.5em 0; 
           color: #666; 
+          line-height: 1.6;
         }
-        .markdown-content ul, .markdown-content ol { margin: 1em 0; padding-left: 2em; }
-        .markdown-content li { margin: 0.5em 0; }
-        .markdown-content hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+        .markdown-content ul, .markdown-content ol { margin: 0.3em 0; padding-left: 2em; line-height: 1.6; }
+        .markdown-content li { margin: 0.1em 0; }
+        .markdown-content hr { border: none; border-top: 1px solid #ddd; margin: 1em 0; }
         .markdown-content code { 
           background-color: #f5f5f5; 
           padding: 0.2em 0.4em; 
