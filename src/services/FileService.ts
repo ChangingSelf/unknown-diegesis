@@ -1,4 +1,4 @@
-import { FileState, FileOperationResult, SaveStatus } from '../types/block';
+import { FileState, FileOperationResult } from '../types/block';
 
 /**
  * 文件服务类
@@ -59,7 +59,7 @@ export class FileService {
       }
 
       const result = await window.electronAPI.fileOpen();
-      
+
       if (result.success && result.path && result.content) {
         const format = this.detectFileFormat(result.path);
         this.updateState({

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BlockManager } from './utils/BlockManager';
-import { Block, BlockType } from './types/block';
+import { Block } from './types/block';
 import { FileService } from './services/FileService';
 import { AutoSaveManager } from './services/AutoSaveManager';
 import { FileMenu } from './components/FileMenu';
@@ -81,11 +81,12 @@ function App() {
   useEffect(() => {
     autoSaveManagerRef.current.setSaveCallback(async () => {
       if (!fileState.currentFilePath) return false;
-      
-      const content = fileState.fileFormat === 'udn'
-        ? blockManagerRef.current.toUDN()
-        : blockManagerRef.current.toMarkdown();
-      
+
+      const content =
+        fileState.fileFormat === 'udn'
+          ? blockManagerRef.current.toUDN()
+          : blockManagerRef.current.toMarkdown();
+
       const result = await fileServiceRef.current.saveFile(content);
       return result.success;
     });
@@ -117,10 +118,11 @@ function App() {
   };
 
   const handleSaveAs = async () => {
-    const content = fileState.fileFormat === 'udn'
-      ? blockManagerRef.current.toUDN()
-      : blockManagerRef.current.toMarkdown();
-    
+    const content =
+      fileState.fileFormat === 'udn'
+        ? blockManagerRef.current.toUDN()
+        : blockManagerRef.current.toMarkdown();
+
     await fileServiceRef.current.saveFileAs(content);
   };
 
@@ -157,44 +159,43 @@ function App() {
     autoSaveManagerRef.current.onContentChange();
   };
 
-  const handleMoveBlock = (blockId: string, targetColumnId: string) => {
-    blockManagerRef.current.moveBlockToColumn(blockId, targetColumnId);
-    setBlocks(blockManagerRef.current.getBlocks());
-    setLayoutRows(blockManagerRef.current.getLayoutRows());
-    fileServiceRef.current.markAsModified();
-    autoSaveManagerRef.current.onContentChange();
-  };
-
   const handleToggleEdit = (blockId: string) => {
     setEditingBlockId(editingBlockId === blockId ? null : blockId);
   };
 
   // 处理创建新块（通过 Enter 键）
-  const handleCreateNewBlock = (currentBlockId: string, position: 'before' | 'after' | 'split', content?: string) => {
+  const handleCreateNewBlock = (
+    currentBlockId: string,
+    position: 'before' | 'after' | 'split',
+    content?: string
+  ) => {
     const currentBlock = blockManagerRef.current.getBlock(currentBlockId);
     if (!currentBlock) return;
 
     // 创建新块
-    const newBlock = blockManagerRef.current.addBlock('paragraph', content ? `<p>${content}</p>` : '');
-    
+    const newBlock = blockManagerRef.current.addBlock(
+      'paragraph',
+      content ? `<p>${content}</p>` : ''
+    );
+
     // 根据位置插入新块
     const blocks = blockManagerRef.current.getBlocks();
     const currentIndex = blocks.findIndex(b => b.id === currentBlockId);
-    
+
     if (currentIndex !== -1) {
       // 移除新添加的块
       blockManagerRef.current.deleteBlock(newBlock.id);
-      
+
       // 根据位置重新插入
       if (position === 'before') {
         blocks.splice(currentIndex, 0, newBlock);
       } else {
         blocks.splice(currentIndex + 1, 0, newBlock);
       }
-      
+
       // 更新 BlockManager
       blockManagerRef.current = new BlockManager(blocks, blockManagerRef.current.getLayoutRows());
-      
+
       // 如果当前块有布局信息，需要更新布局
       if (currentBlock.layoutRowId && currentBlock.layoutColumnId) {
         const layoutRows = blockManagerRef.current.getLayoutRows();
@@ -209,7 +210,7 @@ function App() {
               } else {
                 column.blockIds.splice(blockIndex + 1, 0, newBlock.id);
               }
-              
+
               // 设置新块的布局信息
               newBlock.layoutRowId = currentBlock.layoutRowId;
               newBlock.layoutColumnId = currentBlock.layoutColumnId;
@@ -217,7 +218,7 @@ function App() {
           }
         }
       }
-      
+
       setBlocks([...blockManagerRef.current.getBlocks()]);
       setLayoutRows([...blockManagerRef.current.getLayoutRows()]);
       setEditingBlockId(newBlock.id);
@@ -229,12 +230,12 @@ function App() {
   // 处理拖动：根据 Alt 键决定是创建并列块还是排序
   const handleDragBlock = (sourceBlockId: string, targetBlockId: string) => {
     setDraggingBlockId(null);
-    
+
     if (sourceBlockId === targetBlockId) return;
 
     const sourceBlock = blockManagerRef.current.getBlock(sourceBlockId);
     const targetBlock = blockManagerRef.current.getBlock(targetBlockId);
-    
+
     if (!sourceBlock || !targetBlock) return;
 
     // 如果按下 Alt 键，创建并列布局
@@ -257,15 +258,18 @@ function App() {
       const allBlocks = blockManagerRef.current.getBlocks();
       const sourceIndex = allBlocks.findIndex(b => b.id === sourceBlockId);
       const targetIndex = allBlocks.findIndex(b => b.id === targetBlockId);
-      
+
       if (sourceIndex !== -1 && targetIndex !== -1) {
         // 移除源块
         const [movedBlock] = allBlocks.splice(sourceIndex, 1);
         // 插入到目标位置
         allBlocks.splice(targetIndex, 0, movedBlock);
-        
+
         // 更新 BlockManager
-        blockManagerRef.current = new BlockManager(allBlocks, blockManagerRef.current.getLayoutRows());
+        blockManagerRef.current = new BlockManager(
+          allBlocks,
+          blockManagerRef.current.getLayoutRows()
+        );
       }
     }
 
@@ -276,7 +280,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-paper-50 bg-paper-texture">
       {/* 文件菜单 */}
       <FileMenu
         fileName={fileServiceRef.current.getFileName()}
@@ -287,17 +291,18 @@ function App() {
         onNew={handleNew}
       />
 
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">
-              未知叙事 - 小说块编辑器
+      <header className="bg-white shadow-paper border-b border-paper-300">
+        <div className="px-8 py-5 flex justify-between items-center">
+          <div className="animate-fade-in">
+            <h1 className="text-2xl font-bold text-charcoal-900 font-display">
+              未知叙事
+              <span className="text-lg font-normal text-charcoal-500 ml-2">小说块编辑器</span>
             </h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-charcoal-500 mt-1.5 font-ui">
               基于 Markdown + 块编辑 + 双链的桌面端编辑器
             </p>
           </div>
-          
+
           {/* 保存状态指示器 */}
           <SaveStatusIndicator
             status={fileState.saveStatus}
@@ -306,8 +311,8 @@ function App() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <main className="container mx-auto px-8 py-10">
+        <div className="bg-white rounded-2xl shadow-paper border border-paper-300 p-8 animate-slide-up">
           {/* 布局行列表 */}
           {layoutRows.length > 0 ? (
             layoutRows.map(row => (
@@ -318,7 +323,6 @@ function App() {
                 onUpdateBlock={handleUpdateBlock}
                 onCreateSibling={handleCreateSibling}
                 onColumnResize={handleColumnResize}
-                onMoveBlock={handleMoveBlock}
                 editingBlockId={editingBlockId}
                 onToggleEdit={handleToggleEdit}
                 onCreateNewBlock={handleCreateNewBlock}
@@ -328,8 +332,8 @@ function App() {
               />
             ))
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <p>没有内容，请打开文件或创建新文档</p>
+            <div className="text-center py-16 text-charcoal-400">
+              <p className="text-lg">没有内容，请打开文件或创建新文档</p>
             </div>
           )}
         </div>
