@@ -49,3 +49,9 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.temp
+
+*.png
+.omc
+.sisyphus
+.claude
+.qoder

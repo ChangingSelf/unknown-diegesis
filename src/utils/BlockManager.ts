@@ -225,7 +225,41 @@ export class BlockManager {
 
   // 转换为Markdown
   toMarkdown(): string {
-    return this.blocks.map(block => block.content).join('\n\n');
+    return this.blocks.map(block => this.stripHtmlTags(block.content)).join('\n\n');
+  }
+
+  // 去除 HTML 标签，保留纯文本
+  private stripHtmlTags(html: string): string {
+    if (!html) return '';
+    
+    // 处理换行标签
+    let text = html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/li>/gi, '\n');
+    
+    // 处理列表项
+    text = text.replace(/<li[^>]*>/gi, '- ');
+    
+    // 移除所有其他 HTML 标签
+    text = text.replace(/<[^>]+>/g, '');
+    
+    // 解码 HTML 实体
+    text = text
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+    
+    // 清理多余空白
+    text = text
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    
+    return text;
   }
 
   // ========== 布局管理方法 ==========
@@ -469,3 +503,5 @@ export class BlockManager {
     }
   }
 }
+
+
