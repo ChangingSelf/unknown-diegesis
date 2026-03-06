@@ -1,0 +1,34 @@
+# Yarn
+.pnp/
+.pnp.js
+.pnp.cjs
+.pnp.loader.mjs
+.yarn/
+
+# Build outputs
+dist/
+dist-electron/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test
+coverage/
+
+# Misc
+*.ico
+electron/main.test.js
