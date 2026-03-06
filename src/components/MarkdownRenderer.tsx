@@ -37,7 +37,7 @@ const parseMarkdown = (content: string): { html: string; isHeading: boolean } =>
     const lines = content.split('\n');
     const isOrdered = /^\d+\./.test(lines[0]);
     const listTag = isOrdered ? 'ol' : 'ul';
-    
+
     const listItems = lines.map(line => {
       let itemText = line;
       if (isOrdered) {
@@ -47,7 +47,7 @@ const parseMarkdown = (content: string): { html: string; isHeading: boolean } =>
       }
       return `<li>${itemText}</li>`;
     });
-    
+
     html = `<${listTag}>${listItems.join('')}</${listTag}>`;
   }
   // 处理分割线
@@ -63,10 +63,13 @@ const parseMarkdown = (content: string): { html: string; isHeading: boolean } =>
     // 处理行内代码
     html = html.replace(/`(.+?)`/g, '<code>$1</code>');
     // 处理链接
-    html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    html = html.replace(
+      /\[(.+?)\]\((.+?)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
     // 处理双链（预留）
     html = html.replace(/\[\[(.+?)\]\]/g, '<span class="wiki-link">[[$1]]</span>');
-    
+
     html = `<p>${html}</p>`;
   }
 
@@ -77,10 +80,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ block, onEdi
   // 如果内容已经是 HTML 格式（从 Tiptap 编辑器来），直接使用
   let html = block.content;
   let isHeading = false;
-  
+
   // 检查是否是 HTML 格式
   const isHTML = block.content.includes('<') && block.content.includes('>');
-  
+
   if (isHTML) {
     // 直接使用 HTML 内容
     html = block.content;
@@ -94,49 +97,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ block, onEdi
   }
 
   return (
-    <div 
-      className={`markdown-renderer ${isHeading ? 'heading-block' : ''} mb-1 cursor-pointer group hover:bg-gray-50 transition-colors rounded px-1`}
+    <div
+      className={`markdown-renderer ${isHeading ? 'heading-block' : ''} mb-2 cursor-pointer`}
       onClick={onEdit}
     >
-      <div 
-        className="markdown-content"
-        style={{ textAlign: 'left' }}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-      <style>{`
-        .markdown-content { line-height: 1.6; }
-        .markdown-content h1 { font-size: 2em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
-        .markdown-content h2 { font-size: 1.5em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
-        .markdown-content h3 { font-size: 1.17em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
-        .markdown-content h4 { font-size: 1em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
-        .markdown-content h5 { font-size: 0.83em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
-        .markdown-content h6 { font-size: 0.75em; font-weight: bold; margin: 0.3em 0; line-height: 1.2; }
-        .markdown-content p { margin: 0.2em 0; line-height: 1.6; }
-        .markdown-content blockquote { 
-          border-left: 4px solid #ddd; 
-          padding-left: 1em; 
-          margin: 0.5em 0; 
-          color: #666; 
-          line-height: 1.6;
-        }
-        .markdown-content ul, .markdown-content ol { margin: 0.3em 0; padding-left: 2em; line-height: 1.6; }
-        .markdown-content li { margin: 0.1em 0; }
-        .markdown-content hr { border: none; border-top: 1px solid #ddd; margin: 1em 0; }
-        .markdown-content code { 
-          background-color: #f5f5f5; 
-          padding: 0.2em 0.4em; 
-          border-radius: 3px; 
-          font-family: monospace; 
-        }
-        .markdown-content a { color: #0366d6; text-decoration: none; }
-        .markdown-content a:hover { text-decoration: underline; }
-        .wiki-link { 
-          background-color: #e6f7ff; 
-          padding: 0.2em 0.4em; 
-          border-radius: 3px; 
-          color: #1890ff; 
-        }
-      `}</style>
+      <div className="markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 };

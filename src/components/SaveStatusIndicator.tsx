@@ -14,7 +14,7 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
     switch (status) {
       case 'saving':
         return (
-          <span className="flex items-center gap-2 text-blue-600">
+          <span className="flex items-center gap-2 text-ink-600 font-medium">
             <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
@@ -34,25 +34,50 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
             保存中...
           </span>
         );
-      
+
       case 'saved':
         return (
-          <span className="text-green-600">
-            ✓ 所有更改已保存
+          <span className="flex items-center gap-2 text-success-600 font-medium">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <span>所有更改已保存</span>
             {lastSavedTime && (
-              <span className="text-gray-500 text-xs ml-2">
-                {formatTime(lastSavedTime)}
-              </span>
+              <span className="text-charcoal-400 text-sm ml-1">{formatTime(lastSavedTime)}</span>
             )}
           </span>
         );
-      
+
       case 'error':
-        return <span className="text-red-600">✗ 保存失败</span>;
-      
+        return (
+          <span className="flex items-center gap-2 text-danger-600 font-medium">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            保存失败
+          </span>
+        );
+
       case 'modified':
-        return <span className="text-yellow-600">● 未保存</span>;
-      
+        return (
+          <span className="flex items-center gap-2 text-warning-600 font-medium">
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="6" />
+            </svg>
+            未保存
+          </span>
+        );
+
       default:
         return null;
     }
@@ -68,13 +93,9 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
     if (seconds < 60) return '刚刚';
     if (minutes < 60) return `${minutes}分钟前`;
     if (hours < 24) return `${hours}小时前`;
-    
+
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   };
 
-  return (
-    <div className="save-status-indicator px-4 py-2 text-sm">
-      {getStatusDisplay()}
-    </div>
-  );
+  return <div className="save-status-indicator px-4 py-2 text-sm">{getStatusDisplay()}</div>;
 };

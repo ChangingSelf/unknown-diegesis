@@ -41,7 +41,7 @@ export const BlockList: React.FC<BlockListProps> = ({
 
   const handleDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
-    
+
     if (draggedBlockId === null) {
       return;
     }
@@ -71,18 +71,17 @@ export const BlockList: React.FC<BlockListProps> = ({
         <div
           key={block.id}
           draggable={editingBlockId === block.id}
-          onDragStart={(e) => handleDragStart(e, block.id)}
-          onDragOver={(e) => handleDragOver(e, index)}
+          onDragStart={e => handleDragStart(e, block.id)}
+          onDragOver={e => handleDragOver(e, index)}
           onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, index)}
+          onDrop={e => handleDrop(e, index)}
           onDragEnd={handleDragEnd}
           className={`relative ${draggedBlockId === block.id ? 'opacity-50' : ''}`}
         >
-          {/* 拖拽指示器 */}
           {dragOverIndex === index && (
-            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 z-10"></div>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-ink-500 z-10 rounded-full shadow-sm"></div>
           )}
-          
+
           <BlockEditor
             block={block}
             onUpdate={onUpdateBlock}
@@ -91,49 +90,27 @@ export const BlockList: React.FC<BlockListProps> = ({
           />
         </div>
       ))}
-      
-      {/* 添加新块的按钮 */}
-      <div className="add-block-buttons mt-4 flex flex-wrap gap-2">
-        <button
-          onClick={() => handleAddBlock('paragraph')}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-        >
+
+      <div className="add-block-buttons mt-6 flex flex-wrap gap-2">
+        <button onClick={() => handleAddBlock('paragraph')} className="btn-primary">
           + 段落
         </button>
-        <button
-          onClick={() => handleAddBlock('heading')}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-        >
+        <button onClick={() => handleAddBlock('heading')} className="btn-secondary">
           + 标题
         </button>
-        <button
-          onClick={() => handleAddBlock('quote')}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-        >
+        <button onClick={() => handleAddBlock('quote')} className="btn-secondary">
           + 引用
         </button>
-        <button
-          onClick={() => handleAddBlock('bulletList')}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-        >
+        <button onClick={() => handleAddBlock('bulletList')} className="btn-secondary">
           + 无序列表
         </button>
-        <button
-          onClick={() => handleAddBlock('orderedList')}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-        >
+        <button onClick={() => handleAddBlock('orderedList')} className="btn-secondary">
           + 有序列表
         </button>
-        <button
-          onClick={() => handleAddBlock('taskList')}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-        >
+        <button onClick={() => handleAddBlock('taskList')} className="btn-secondary">
           + 任务列表
         </button>
-        <button
-          onClick={() => handleAddBlock('horizontalRule')}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
-        >
+        <button onClick={() => handleAddBlock('horizontalRule')} className="btn-secondary">
           + 分割线
         </button>
       </div>

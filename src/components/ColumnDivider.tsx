@@ -15,7 +15,7 @@ export const ColumnDivider: React.FC<ColumnDividerProps> = ({ onResize }) => {
     const handleMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - startXRef.current;
       const deltaPercent = (deltaX / window.innerWidth) * 100;
-      
+
       // 限制在合理范围内
       const clampedDelta = Math.max(-30, Math.min(30, deltaPercent));
       currentDeltaRef.current = clampedDelta;
@@ -46,8 +46,8 @@ export const ColumnDivider: React.FC<ColumnDividerProps> = ({ onResize }) => {
 
   return (
     <div
-      className={`column-divider w-1 cursor-col-resize bg-gray-300 hover:bg-blue-500 transition-colors ${
-        isDragging ? 'bg-blue-500' : ''
+      className={`column-divider w-1.5 cursor-col-resize bg-paper-300 hover:bg-ink-400 transition-all duration-200 ${
+        isDragging ? 'bg-ink-500 w-2' : ''
       }`}
       onMouseDown={handleMouseDown}
       style={{ minHeight: '100px' }}

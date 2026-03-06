@@ -60,12 +60,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           if (onCreateNewBlock) {
             // 如果是拆分块，需要更新当前块内容
             if (position === 'split' && content) {
-              // 获取光标前的内容
-              const currentContent = editor?.getHTML() || '';
               const textContent = editor?.getText() || '';
               const cursorPos = editor?.state.selection.$from.parentOffset || 0;
               const beforeCursor = textContent.substring(0, cursorPos);
-              
+
               // 更新当前块
               onUpdate({
                 ...block,
@@ -150,7 +148,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   // 如果不是编辑状态，显示Markdown渲染结果
   if (!isEditing) {
     return (
-      <div 
+      <div
         className={`relative ${isDragging ? 'opacity-50' : ''}`}
         draggable={!isEditing}
         onDragStart={handleDragStart}
@@ -164,90 +162,23 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   // 编辑状态
   return (
-    <div 
-      className="block-editor editing mb-1"
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    >
+    <div className="block-editor editing mb-2" onDragOver={handleDragOver} onDrop={handleDrop}>
       <div className="flex items-start group">
-        <div 
-          className="drag-handle mr-1 cursor-move text-gray-300 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+        <div
+          className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
           draggable
           onDragStart={handleDragStart}
         >
           ⋮⋮
         </div>
         <div className="flex-1">
-          <EditorContent 
-            editor={editor} 
+          <EditorContent
+            editor={editor}
             onBlur={handleBlur}
             className="tiptap-content cursor-text"
           />
         </div>
       </div>
-      <style>{`
-        .tiptap-content .ProseMirror {
-          outline: none;
-          text-align: left;
-          line-height: 1.6;
-        }
-        .tiptap-content .ProseMirror p {
-          margin: 0.2em 0;
-          line-height: 1.6;
-        }
-        .tiptap-content .ProseMirror h1 {
-          font-size: 2em;
-          font-weight: bold;
-          margin: 0.3em 0;
-          line-height: 1.2;
-        }
-        .tiptap-content .ProseMirror h2 {
-          font-size: 1.5em;
-          font-weight: bold;
-          margin: 0.3em 0;
-          line-height: 1.2;
-        }
-        .tiptap-content .ProseMirror h3 {
-          font-size: 1.17em;
-          font-weight: bold;
-          margin: 0.3em 0;
-          line-height: 1.2;
-        }
-        .tiptap-content .ProseMirror h4 {
-          font-size: 1em;
-          font-weight: bold;
-          margin: 0.3em 0;
-          line-height: 1.2;
-        }
-        .tiptap-content .ProseMirror h5 {
-          font-size: 0.83em;
-          font-weight: bold;
-          margin: 0.3em 0;
-          line-height: 1.2;
-        }
-        .tiptap-content .ProseMirror h6 {
-          font-size: 0.75em;
-          font-weight: bold;
-          margin: 0.3em 0;
-          line-height: 1.2;
-        }
-        .tiptap-content .ProseMirror ul,
-        .tiptap-content .ProseMirror ol {
-          margin: 0.3em 0;
-          padding-left: 2em;
-          line-height: 1.6;
-        }
-        .tiptap-content .ProseMirror li {
-          margin: 0.1em 0;
-        }
-        .tiptap-content .ProseMirror blockquote {
-          border-left: 4px solid #ddd;
-          padding-left: 1em;
-          margin: 0.5em 0;
-          color: #666;
-          line-height: 1.6;
-        }
-      `}</style>
     </div>
   );
 };

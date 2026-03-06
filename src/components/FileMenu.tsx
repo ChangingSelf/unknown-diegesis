@@ -1,5 +1,4 @@
 import React from 'react';
-import { SaveStatus } from '../types/block';
 
 interface FileMenuProps {
   fileName: string;
@@ -19,35 +18,23 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onNew,
 }) => {
   return (
-    <div className="file-menu flex items-center gap-4 px-4 py-2 bg-gray-100 border-b border-gray-200">
-      <div className="file-name font-medium text-gray-700">
-        {fileName}{isModified && ' *'}
+    <div className="file-menu flex items-center gap-4 px-6 py-3 bg-paper-100 border-b border-paper-300">
+      <div className="file-name font-semibold text-charcoal-800 text-base">
+        {fileName}
+        {isModified && <span className="text-gold-500 ml-1">*</span>}
       </div>
-      
+
       <div className="menu-buttons flex gap-2">
-        <button
-          onClick={onNew}
-          className="px-3 py-1 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded transition-colors"
-        >
+        <button onClick={onNew} className="btn-secondary">
           新建
         </button>
-        <button
-          onClick={onOpen}
-          className="px-3 py-1 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded transition-colors"
-        >
+        <button onClick={onOpen} className="btn-secondary">
           打开
         </button>
-        <button
-          onClick={onSave}
-          className="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
-          disabled={!isModified}
-        >
+        <button onClick={onSave} className="btn-primary" disabled={!isModified}>
           保存
         </button>
-        <button
-          onClick={onSaveAs}
-          className="px-3 py-1 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded transition-colors"
-        >
+        <button onClick={onSaveAs} className="btn-secondary">
           另存为
         </button>
       </div>
