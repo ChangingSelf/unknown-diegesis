@@ -1,4 +1,17 @@
 import React from 'react';
+import { Button, Space, Tag, Typography } from 'antd';
+import {
+  SaveOutlined,
+  ExportOutlined,
+  FileAddOutlined,
+  FolderOpenOutlined,
+  CloseOutlined,
+  CheckOutlined,
+  LoadingOutlined,
+  ExclamationOutlined,
+} from '@ant-design/icons';
+
+const { Text } = Typography;
 
 export type ViewMode = 'welcome' | 'workspace' | 'single-file';
 
@@ -15,72 +28,61 @@ export interface TopBarProps {
   onExportMarkdown?: () => void;
 }
 
-// Local SaveStatusIndicator - minimal, self-contained to avoid external deps
 const SaveStatusIndicator: React.FC<{
   status: TopBarProps['saveStatus'];
   isModified?: boolean;
   lastSavedTime?: Date | null;
 }> = ({ status, isModified, lastSavedTime }) => {
-  const renderIcon = () => {
+  const getIcon = () => {
     switch (status) {
       case 'saving':
-        return (
-          <span
-            className="inline-flex items-center justify-center w-4 h-4 mr-1"
-            aria-label="saving"
-          >
-            <span className="animate-spin w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
-          </span>
-        );
+        return <LoadingOutlined spin />;
       case 'saved':
-        return (
-          <span className="mr-1" aria-label="saved">
-            ✔
-          </span>
-        );
+        return <CheckOutlined />;
       case 'error':
-        return (
-          <span className="mr-1" aria-label="error">
-            !
-          </span>
-        );
+        return <ExclamationOutlined />;
       case 'modified':
-        return (
-          <span className="mr-1" aria-label="modified">
-            •
-          </span>
-        );
+        return <span>•</span>;
       default:
         return null;
     }
   };
-  const timeText = lastSavedTime ? ` at ${lastSavedTime.toLocaleTimeString()}` : '';
-  let label = '';
-  switch (status) {
-    case 'saving':
-      label = 'Saving...';
-      break;
-    case 'saved':
-      label = 'Saved';
-      if (timeText) label += timeText;
-      break;
-    case 'error':
-      label = 'Save error';
-      break;
-    case 'modified':
-      label = isModified ? 'Modified' : 'Idle';
-      break;
-    default:
-      label = 'Idle';
-  }
+
+  const getColor = () => {
+    switch (status) {
+      case 'saving':
+        return 'processing';
+      case 'saved':
+        return 'success';
+      case 'error':
+        return 'error';
+      case 'modified':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  };
+
+  const getText = () => {
+    const timeText = lastSavedTime ? ` ${lastSavedTime.toLocaleTimeString()}` : '';
+    switch (status) {
+      case 'saving':
+        return '保存中...';
+      case 'saved':
+        return `已保存${timeText}`;
+      case 'error':
+        return '保存失败';
+      case 'modified':
+        return isModified ? '已修改' : '空闲';
+      default:
+        return '空闲';
+    }
+  };
+
   return (
-    <span
-      className="flex items-center text-sm text-charcoal bg-paper border border-gray-200 rounded px-2 py-1 select-none"
-      aria-label="save-status"
-    >
-      {renderIcon()}
-      <span className="whitespace-nowrap">{label}</span>
-    </span>
+    <Tag icon={getIcon()} color={getColor()}>
+      {getText()}
+    </Tag>
   );
 };
 
@@ -96,66 +98,55 @@ export const TopBar: React.FC<TopBarProps> = ({
   onCloseWorkspace,
   onExportMarkdown,
 }) => {
-  // Center title: show current file or workspace name when provided
   const centerTitle =
     title ??
     (viewMode === 'welcome' ? 'Welcome' : viewMode === 'workspace' ? 'Workspace' : 'Untitled');
 
-  // Actions per mode
   const renderActions = () => {
     if (viewMode === 'welcome') {
       return (
         <>
           {onNew && (
-            <button className="btn btn-secondary" onClick={onNew} aria-label="new">
-              New
-            </button>
+            <Button icon={<FileAddOutlined />} onClick={onNew}>
+              新建
+            </Button>
           )}
           {onOpen && (
-            <button className="btn btn-secondary" onClick={onOpen} aria-label="open">
-              Open
-            </button>
+            <Button icon={<FolderOpenOutlined />} onClick={onOpen}>
+              打开
+            </Button>
           )}
         </>
       );
     }
 
-    // For workspace mode, provide common actions plus Save on the right side
     if (viewMode === 'workspace') {
       return (
         <>
           {onSave && (
-            <button className="btn btn-primary" onClick={onSave} aria-label="save">
-              Save
-            </button>
+            <Button type="primary" icon={<SaveOutlined />} onClick={onSave}>
+              保存
+            </Button>
           )}
           {onExportMarkdown && (
-            <button
-              className="btn btn-secondary"
-              onClick={onExportMarkdown}
-              aria-label="export-markdown"
-            >
-              Export MD
-            </button>
+            <Button icon={<ExportOutlined />} onClick={onExportMarkdown}>
+              导出 MD
+            </Button>
           )}
           {onNew && (
-            <button className="btn btn-secondary" onClick={onNew} aria-label="new-file">
-              New
-            </button>
+            <Button icon={<FileAddOutlined />} onClick={onNew}>
+              新建
+            </Button>
           )}
           {onOpen && (
-            <button className="btn btn-secondary" onClick={onOpen} aria-label="open-file">
-              Open
-            </button>
+            <Button icon={<FolderOpenOutlined />} onClick={onOpen}>
+              打开
+            </Button>
           )}
           {onCloseWorkspace && (
-            <button
-              className="btn btn-secondary"
-              onClick={onCloseWorkspace}
-              aria-label="close-workspace"
-            >
-              Close Workspace
-            </button>
+            <Button icon={<CloseOutlined />} onClick={onCloseWorkspace}>
+              关闭工作区
+            </Button>
           )}
         </>
       );
@@ -165,32 +156,24 @@ export const TopBar: React.FC<TopBarProps> = ({
       return (
         <>
           {onSave && (
-            <button className="btn btn-primary" onClick={onSave} aria-label="save">
-              Save
-            </button>
+            <Button type="primary" icon={<SaveOutlined />} onClick={onSave}>
+              保存
+            </Button>
           )}
           {onExportMarkdown && (
-            <button
-              className="btn btn-secondary"
-              onClick={onExportMarkdown}
-              aria-label="export-markdown"
-            >
-              Export MD
-            </button>
+            <Button icon={<ExportOutlined />} onClick={onExportMarkdown}>
+              导出 MD
+            </Button>
           )}
           {onNew && (
-            <button className="btn btn-secondary" onClick={onNew} aria-label="new-file">
-              New
-            </button>
+            <Button icon={<FileAddOutlined />} onClick={onNew}>
+              新建
+            </Button>
           )}
           {onCloseWorkspace && (
-            <button
-              className="btn btn-secondary"
-              onClick={onCloseWorkspace}
-              aria-label="close-file"
-            >
-              Close
-            </button>
+            <Button icon={<CloseOutlined />} onClick={onCloseWorkspace}>
+              关闭
+            </Button>
           )}
         </>
       );
@@ -200,41 +183,21 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <header className="w-full h-12 bg-paper border-b border-gray-200 flex items-center px-4">
-      {/* Left: Logo / Title */}
       <div className="flex items-center gap-2">
-        <span
-          className="inline-flex items-center justify-center w-5 h-5 rounded bg-white/20 text-charcoal"
-          aria-label="logo"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 3l9 4-9 4-9-4 9-4z" />
-            <path d="M3 11l9 4 9-4" />
-            <path d="M12 15l0 6" />
-          </svg>
-        </span>
         <span className="text-lg font-semibold text-charcoal select-none">未知叙事</span>
       </div>
 
-      {/* Center: current title / file or workspace name */}
-      <div className="flex-1 text-center text-sm text-charcoal select-none mx-4">{centerTitle}</div>
+      <div className="flex-1 text-center mx-4">
+        <Text className="select-none">{centerTitle}</Text>
+      </div>
 
-      {/* Right: save status + actions */}
       <div className="flex items-center gap-2">
         <SaveStatusIndicator
           status={saveStatus}
           isModified={isModified}
           lastSavedTime={lastSavedTime ?? null}
         />
-        {renderActions()}
+        <Space>{renderActions()}</Space>
       </div>
     </header>
   );

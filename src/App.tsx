@@ -11,6 +11,7 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import { TopBar, ViewMode } from './components/TopBar';
 import { EditorView } from './components/EditorView';
 import { WorkspaceView } from './components/workspace';
+import { showConfirm } from './hooks/useConfirm';
 
 function App() {
   const workspaceManagerRef = useRef<WorkspaceManager>(new WorkspaceManager());
@@ -295,7 +296,10 @@ function App() {
   const handleChapterDelete = async (chapterId: string) => {
     if (!workspace) return;
     const chapter = workspace.chapters.find(ch => ch.id === chapterId);
-    if (!chapter || !confirm('确定删除此章节？')) return;
+    if (!chapter) return;
+
+    const confirmed = await showConfirm({ content: '确定删除此章节？' });
+    if (!confirmed) return;
 
     const success = await chapterServiceRef.current.deleteChapter(workspace.path, chapter.path);
     if (success) {

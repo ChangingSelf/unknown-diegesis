@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
+import { Input, Collapse, List, Button, Popconfirm, Typography, Badge } from 'antd';
+import {
+  UserOutlined,
+  EnvironmentOutlined,
+  GiftOutlined,
+  CalendarOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
 import { MaterialMeta, MaterialType } from '@/types/material';
+
+const { Text } = Typography;
 
 interface MaterialPanelProps {
   materials: MaterialMeta[];
@@ -9,12 +21,12 @@ interface MaterialPanelProps {
   onDelete: (materialId: string) => void;
 }
 
-const MATERIAL_TYPE_CONFIG: Record<MaterialType, { label: string; icon: string }> = {
-  character: { label: '角色', icon: '👤' },
-  location: { label: '地点', icon: '📍' },
-  item: { label: '物品', icon: '📦' },
-  timeline: { label: '时间线', icon: '📅' },
-  note: { label: '笔记', icon: '📝' },
+const MATERIAL_TYPE_CONFIG: Record<MaterialType, { label: string; icon: React.ReactNode }> = {
+  character: { label: '角色', icon: <UserOutlined /> },
+  location: { label: '地点', icon: <EnvironmentOutlined /> },
+  item: { label: '物品', icon: <GiftOutlined /> },
+  timeline: { label: '时间线', icon: <CalendarOutlined /> },
+  note: { label: '笔记', icon: <FileTextOutlined /> },
 };
 
 export const MaterialPanel: React.FC<MaterialPanelProps> = ({
@@ -24,20 +36,8 @@ export const MaterialPanel: React.FC<MaterialPanelProps> = ({
   onCreate,
   onDelete,
 }) => {
-  const [expandedTypes, setExpandedTypes] = useState<Set<MaterialType>>(
-    new Set(['character', 'location'])
-  );
   const [searchQuery, setSearchQuery] = useState('');
-
-  const toggleType = (type: MaterialType) => {
-    const newExpanded = new Set(expandedTypes);
-    if (newExpanded.has(type)) {
-      newExpanded.delete(type);
-    } else {
-      newExpanded.add(type);
-    }
-    setExpandedTypes(newExpanded);
-  };
+  const [activeKeys, setActiveKeys] = useState<string[]>(['character', 'location']);
 
   const groupedMaterials = materials.reduce(
     (acc, material) => {
@@ -63,77 +63,93 @@ export const MaterialPanel: React.FC<MaterialPanelProps> = ({
     {} as Record<MaterialType, MaterialMeta[]>
   );
 
+  const collapseItems = Object.entries(MATERIAL_TYPE_CONFIG).map(([type, config]) => {
+    const typeMaterials = filteredGroups[type as MaterialType] || [];
+    const totalCount = groupedMaterials[type as MaterialType]?.length || 0;
+
+    return {
+      key: type,
+      label: (
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            {config.icon}
+            <span>{config.label}</span>
+            <Badge count={totalCount} size="small" />
+          </div>
+          <Button
+            type="text"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={e => {
+              e.stopPropagation();
+              onCreate(type as MaterialType);
+            }}
+          />
+        </div>
+      ),
+      children:
+        typeMaterials.length > 0 ? (
+          <List
+            size="small"
+            dataSource={typeMaterials}
+            renderItem={material => (
+              <List.Item
+                onClick={() => onSelect(material.id)}
+                className={`cursor-pointer ${
+                  currentMaterialId === material.id
+                    ? 'bg-blue-50 border-r-2 border-blue-500'
+                    : 'hover:bg-gray-50'
+                }`}
+                actions={[
+                  <Popconfirm
+                    key="delete"
+                    title="确定删除此资料？"
+                    onConfirm={e => {
+                      e?.stopPropagation();
+                      onDelete(material.id);
+                    }}
+                    onCancel={e => e?.stopPropagation()}
+                    okText="删除"
+                    cancelText="取消"
+                  >
+                    <Button
+                      type="text"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={e => e.stopPropagation()}
+                    />
+                  </Popconfirm>,
+                ]}
+              >
+                <Text ellipsis>{material.name}</Text>
+              </List.Item>
+            )}
+          />
+        ) : (
+          <div className="text-center text-gray-400 py-4 text-sm">暂无资料</div>
+        ),
+    };
+  });
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-paper-200">
-        <input
-          type="text"
+      <div className="p-3 border-b border-gray-200">
+        <Input.Search
           placeholder="搜索资料..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-1.5 text-sm border border-paper-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gold-400"
+          allowClear
         />
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {Object.entries(MATERIAL_TYPE_CONFIG).map(([type, config]) => {
-          const typeMaterials = filteredGroups[type as MaterialType] || [];
-          const isExpanded = expandedTypes.has(type as MaterialType);
-
-          return (
-            <div key={type} className="border-b border-paper-100">
-              <div
-                className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-paper-50"
-                onClick={() => toggleType(type as MaterialType)}
-              >
-                <div className="flex items-center gap-2">
-                  <span>{isExpanded ? '▼' : '▶'}</span>
-                  <span>{config.icon}</span>
-                  <span className="text-sm font-medium text-charcoal-700">{config.label}</span>
-                  <span className="text-xs text-charcoal-400">({typeMaterials.length})</span>
-                </div>
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    onCreate(type as MaterialType);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gold-100 rounded text-gold-600 text-xs"
-                >
-                  +
-                </button>
-              </div>
-
-              {isExpanded && typeMaterials.length > 0 && (
-                <div className="bg-paper-25">
-                  {typeMaterials.map(material => (
-                    <div
-                      key={material.id}
-                      onClick={() => onSelect(material.id)}
-                      className={`group flex items-center justify-between px-6 py-1.5 cursor-pointer ${
-                        currentMaterialId === material.id
-                          ? 'bg-gold-50 border-r-2 border-gold-500'
-                          : 'hover:bg-paper-50'
-                      }`}
-                    >
-                      <span className="text-sm text-charcoal-600 truncate">{material.name}</span>
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          if (confirm('确定删除此资料？')) {
-                            onDelete(material.id);
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-100 rounded text-red-500 text-xs"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <Collapse
+          activeKey={activeKeys}
+          onChange={keys => setActiveKeys(keys as string[])}
+          ghost
+          items={collapseItems}
+        />
       </div>
     </div>
   );

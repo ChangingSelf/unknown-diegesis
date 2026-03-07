@@ -1,4 +1,15 @@
 import React from 'react';
+import { Button, Space, Typography } from 'antd';
+import {
+  FolderAddOutlined,
+  FolderOpenOutlined,
+  CloseOutlined,
+  SaveOutlined,
+  FileAddOutlined,
+  ExportOutlined,
+} from '@ant-design/icons';
+
+const { Text } = Typography;
 
 interface FileMenuProps {
   fileName?: string;
@@ -28,45 +39,45 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   const isWorkspaceMode = !!workspaceName;
 
   return (
-    <div className="file-menu flex items-center gap-4 px-6 py-3 bg-paper-100 border-b border-paper-300">
-      <div className="file-name font-semibold text-charcoal-800 text-base">
-        {isWorkspaceMode ? workspaceName : fileName}
-        {isModified && <span className="text-gold-500 ml-1">*</span>}
+    <div className="flex items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="font-semibold text-base">
+        <Text strong>{isWorkspaceMode ? workspaceName : fileName}</Text>
+        {isModified && <Text type="warning"> *</Text>}
       </div>
 
-      <div className="menu-buttons flex gap-2">
+      <Space>
         {isWorkspaceMode ? (
           <>
-            <button onClick={onCreateWorkspace} className="btn-secondary">
+            <Button icon={<FolderAddOutlined />} onClick={onCreateWorkspace}>
               新建工作区
-            </button>
-            <button onClick={onOpenWorkspace} className="btn-secondary">
+            </Button>
+            <Button icon={<FolderOpenOutlined />} onClick={onOpenWorkspace}>
               打开工作区
-            </button>
-            <button onClick={onCloseWorkspace} className="btn-secondary">
+            </Button>
+            <Button icon={<CloseOutlined />} onClick={onCloseWorkspace}>
               关闭工作区
-            </button>
-            <button onClick={onSave} className="btn-primary" disabled={!isModified}>
+            </Button>
+            <Button type="primary" icon={<SaveOutlined />} onClick={onSave} disabled={!isModified}>
               保存章节
-            </button>
+            </Button>
           </>
         ) : (
           <>
-            <button onClick={onNew} className="btn-secondary">
+            <Button icon={<FileAddOutlined />} onClick={onNew}>
               新建
-            </button>
-            <button onClick={onOpen} className="btn-secondary">
+            </Button>
+            <Button icon={<FolderOpenOutlined />} onClick={onOpen}>
               打开
-            </button>
-            <button onClick={onSave} className="btn-primary" disabled={!isModified}>
+            </Button>
+            <Button type="primary" icon={<SaveOutlined />} onClick={onSave} disabled={!isModified}>
               保存
-            </button>
-            <button onClick={onSaveAs} className="btn-secondary">
+            </Button>
+            <Button icon={<ExportOutlined />} onClick={onSaveAs}>
               另存为
-            </button>
+            </Button>
           </>
         )}
-      </div>
+      </Space>
     </div>
   );
 };
