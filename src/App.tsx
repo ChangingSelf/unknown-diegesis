@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { BlockManager } from './utils/BlockManager';
 import { Block } from './types/block';
+import { createEmptyDocument, createDocumentFromText } from './types/tiptap';
 import { Workspace } from './types/workspace';
 import { WorkspaceManager } from './services/WorkspaceManager';
 import { ChapterService, ChapterData } from './services/ChapterService';
@@ -94,6 +95,11 @@ function App() {
     await autoSaveManagerRef.current.saveNow();
   };
 
+  const handleExportMarkdown = async () => {
+    const markdown = blockManagerRef.current.toMarkdown();
+    await window.electronAPI.fileSaveAs(markdown);
+  };
+
   const handleNew = () => {
     blockManagerRef.current = new BlockManager();
     setBlocks([]);
@@ -143,7 +149,7 @@ function App() {
 
     const newBlock = blockManagerRef.current.addBlock(
       'paragraph',
-      content ? `<p>${content}</p>` : ''
+      content ? createDocumentFromText(content) : createEmptyDocument()
     );
     const allBlocks = blockManagerRef.current.getBlocks();
     const currentIndex = allBlocks.findIndex(b => b.id === currentBlockId);
@@ -338,6 +344,7 @@ function App() {
           saveStatus={fileState.saveStatus}
           lastSavedTime={fileState.lastSavedTime}
           onSave={handleSave}
+          onExportMarkdown={handleExportMarkdown}
           onCloseWorkspace={handleCloseWorkspace}
         />
         <div className="flex-1 overflow-hidden">
@@ -386,6 +393,7 @@ function App() {
         onNew={handleNew}
         onOpen={handleOpen}
         onSave={handleSave}
+        onExportMarkdown={handleExportMarkdown}
       />
       <div className="flex-1 overflow-hidden">
         <EditorView

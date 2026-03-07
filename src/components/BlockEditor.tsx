@@ -10,6 +10,8 @@ import BulletList from '@tiptap/extension-bullet-list';
 import OrderedList from '@tiptap/extension-ordered-list';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import { Block } from '../types/block';
+import { createDocumentFromText } from '../types/tiptap';
+import { richTextExtensions } from '../extensions/RichTextExtensions';
 import MarkdownRenderer from './MarkdownRenderer';
 import { EnterKeyExtension } from '../extensions/EnterKeyExtension';
 import DiceBlock from './DiceBlock';
@@ -55,7 +57,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       BulletList,
       OrderedList,
       HorizontalRule,
-      // 添加自定义键盘扩展
+      ...richTextExtensions,
       EnterKeyExtension.configure({
         onCreateNewBlock: (position, content) => {
           if (onCreateNewBlock) {
@@ -68,7 +70,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
               // 更新当前块
               onUpdate({
                 ...block,
-                content: `<p>${beforeCursor}</p>`,
+                content: createDocumentFromText(beforeCursor),
                 metadata: {
                   ...block.metadata,
                   modified: new Date(),
@@ -83,7 +85,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     content: block.content,
     editable: isEditing,
     onUpdate: ({ editor }) => {
-      const content = editor.getHTML();
+      const content = editor.getJSON();
       onUpdate({
         ...block,
         content,
@@ -110,7 +112,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   // 当block内容变化时，更新编辑器内容
   React.useEffect(() => {
-    if (editor && editor.getHTML() !== block.content) {
+    if (editor && JSON.stringify(editor.getJSON()) !== JSON.stringify(block.content)) {
       editor.commands.setContent(block.content);
     }
   }, [block.content, editor]);

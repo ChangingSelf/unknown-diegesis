@@ -1,19 +1,18 @@
 import React from 'react';
-// Local TopBar implementation with three view modes.
 
 export type ViewMode = 'welcome' | 'workspace' | 'single-file';
 
 export interface TopBarProps {
   viewMode: ViewMode;
-  title?: string; // 文件名或工作区名
+  title?: string;
   isModified: boolean;
   saveStatus: 'saving' | 'saved' | 'error' | 'modified' | 'idle';
   lastSavedTime?: Date | null;
-  // 回调
   onSave?: () => void;
   onOpen?: () => void;
   onNew?: () => void;
   onCloseWorkspace?: () => void;
+  onExportMarkdown?: () => void;
 }
 
 // Local SaveStatusIndicator - minimal, self-contained to avoid external deps
@@ -95,6 +94,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpen,
   onNew,
   onCloseWorkspace,
+  onExportMarkdown,
 }) => {
   // Center title: show current file or workspace name when provided
   const centerTitle =
@@ -129,6 +129,15 @@ export const TopBar: React.FC<TopBarProps> = ({
               Save
             </button>
           )}
+          {onExportMarkdown && (
+            <button
+              className="btn btn-secondary"
+              onClick={onExportMarkdown}
+              aria-label="export-markdown"
+            >
+              Export MD
+            </button>
+          )}
           {onNew && (
             <button className="btn btn-secondary" onClick={onNew} aria-label="new-file">
               New
@@ -152,10 +161,23 @@ export const TopBar: React.FC<TopBarProps> = ({
       );
     }
 
-    // single-file mode
     if (viewMode === 'single-file') {
       return (
         <>
+          {onSave && (
+            <button className="btn btn-primary" onClick={onSave} aria-label="save">
+              Save
+            </button>
+          )}
+          {onExportMarkdown && (
+            <button
+              className="btn btn-secondary"
+              onClick={onExportMarkdown}
+              aria-label="export-markdown"
+            >
+              Export MD
+            </button>
+          )}
           {onNew && (
             <button className="btn btn-secondary" onClick={onNew} aria-label="new-file">
               New
