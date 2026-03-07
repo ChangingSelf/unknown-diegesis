@@ -43,6 +43,23 @@ function registerFileHandlers() {
     }
   });
 
+  ipcMain.handle('file:openWithPath', async (_, { path }: { path: string }) => {
+    try {
+      const content = await readFile(path, 'utf-8');
+      return {
+        success: true,
+        path,
+        content,
+      };
+    } catch (error) {
+      console.error('Error opening file with path:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
   // === 工作区相关 IPC handlers ===
 
   // 打开工作区（选择文件夹）

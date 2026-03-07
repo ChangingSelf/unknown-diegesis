@@ -9,6 +9,19 @@ declare global {
         content?: string;
         error?: string;
       }>;
+      fileOpenWithPath: (path: string) => Promise<{
+        success: boolean;
+        path?: string;
+        content?: string;
+        error?: string;
+      }>;
+      fileSave: (
+        path: string,
+        content: string
+      ) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
       fileSave: (
         path: string,
         content: string

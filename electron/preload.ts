@@ -5,6 +5,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   // 文件操作 API
   fileOpen: () => ipcRenderer.invoke('file:open'),
+  fileOpenWithPath: (path: string) => ipcRenderer.invoke('file:openWithPath', { path }),
   fileSave: (path: string, content: string) => ipcRenderer.invoke('file:save', { path, content }),
   fileSaveAs: (content: string) => ipcRenderer.invoke('file:saveAs', { content }),
   fileExists: (path: string) => ipcRenderer.invoke('file:exists', { path }),
@@ -34,6 +35,12 @@ declare global {
     electronAPI: {
       // 文件操作
       fileOpen: () => Promise<{
+        success: boolean;
+        path?: string;
+        content?: string;
+        error?: string;
+      }>;
+      fileOpenWithPath: (path: string) => Promise<{
         success: boolean;
         path?: string;
         content?: string;
