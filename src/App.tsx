@@ -1,115 +1,92 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { BlockManager } from './utils/BlockManager';
 import { Block } from './types/block';
-import { FileService } from './services/FileService';
+import { Workspace } from './types/workspace';
+import { WorkspaceManager } from './services/WorkspaceManager';
+import { ChapterService, ChapterData } from './services/ChapterService';
 import { AutoSaveManager } from './services/AutoSaveManager';
-import { FileMenu } from './components/FileMenu';
-import { SaveStatusIndicator } from './components/SaveStatusIndicator';
-import { LayoutRowComponent } from './components/LayoutRow';
+import { FileService } from './services/FileService';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { TopBar, ViewMode } from './components/TopBar';
+import { EditorView } from './components/EditorView';
+import { WorkspaceView } from './components/workspace';
 
 function App() {
-  // 初始化服务
-  const fileServiceRef = useRef<FileService>(new FileService());
+  const workspaceManagerRef = useRef<WorkspaceManager>(new WorkspaceManager());
+  const chapterServiceRef = useRef<ChapterService>(new ChapterService());
   const autoSaveManagerRef = useRef<AutoSaveManager>(new AutoSaveManager());
+  const fileServiceRef = useRef<FileService>(new FileService());
   const blockManagerRef = useRef<BlockManager>(new BlockManager());
 
-  // 状态
+  const [viewMode, setViewMode] = useState<ViewMode>('welcome');
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
+  const [currentChapterData, setCurrentChapterData] = useState<ChapterData | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [layoutRows, setLayoutRows] = useState(blockManagerRef.current.getLayoutRows());
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
-  const [fileState, setFileState] = useState(fileServiceRef.current.getState());
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
   const [isAltKeyPressed, setIsAltKeyPressed] = useState(false);
+  const [fileState, setFileState] = useState(fileServiceRef.current.getState());
 
-  // 初始化示例内容
-  useEffect(() => {
-    const initialContent = `# 未知叙事编辑器
-
-这是一个支持文件操作、键盘交互和并列布局的块编辑器。
-
-## 主要功能
-
-- **文件操作**：支持打开、保存、另存为
-- **自动保存**：3秒防抖自动保存
-- **键盘交互**：Enter 创建新块，Shift+Enter 软换行
-- **并列布局**：支持最多 3 列并列
-
-## 使用方法
-
-1. 点击任意块进入编辑状态
-2. 使用 Enter 键创建新段落块
-3. 使用 Shift+Enter 在块内换行
-4. 拖动块进行排序，按住 Alt 键拖动创建并列布局
-
-感谢使用！`;
-
-    blockManagerRef.current = BlockManager.fromMarkdown(initialContent);
-    setBlocks(blockManagerRef.current.getBlocks());
-    setLayoutRows(blockManagerRef.current.getLayoutRows());
-  }, []);
-
-  // 监听 Alt 键
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey) {
-        setIsAltKeyPressed(true);
-      }
+      if (e.altKey) setIsAltKeyPressed(true);
     };
-
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (!e.altKey) {
-        setIsAltKeyPressed(false);
-      }
+      if (!e.altKey) setIsAltKeyPressed(false);
     };
-
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
-  // 订阅文件状态变化
   useEffect(() => {
     const unsubscribe = fileServiceRef.current.subscribe(setFileState);
     return unsubscribe;
   }, []);
 
-  // 设置自动保存回调
+  const saveCurrentChapter = useCallback(async (): Promise<boolean> => {
+    if (!workspace || !currentChapterId || !currentChapterData) return false;
+
+    const success = await chapterServiceRef.current.saveChapter(
+      workspace.path,
+      currentChapterData.meta.path,
+      {
+        meta: currentChapterData.meta,
+        blocks: blockManagerRef.current.getBlocks(),
+        layoutRows: blockManagerRef.current.getLayoutRows(),
+      }
+    );
+    return success;
+  }, [workspace, currentChapterId, currentChapterData]);
+
   useEffect(() => {
-    autoSaveManagerRef.current.setSaveCallback(async () => {
-      if (!fileState.currentFilePath) return false;
-
-      const content =
-        fileState.fileFormat === 'udn'
-          ? blockManagerRef.current.toUDN()
-          : blockManagerRef.current.toMarkdown();
-
-      const result = await fileServiceRef.current.saveFile(content);
-      return result.success;
+    const manager = autoSaveManagerRef.current;
+    manager.setSaveCallback(async () => {
+      if (viewMode === 'workspace') {
+        return await saveCurrentChapter();
+      } else if (viewMode === 'single-file' && fileState.currentFilePath) {
+        const content = blockManagerRef.current.toMarkdown();
+        const result = await fileServiceRef.current.saveFile(content);
+        return result.success;
+      }
+      return false;
     });
+    manager.enable();
+    return () => manager.destroy();
+  }, [viewMode, fileState.currentFilePath, saveCurrentChapter]);
 
-    autoSaveManagerRef.current.enable();
-
-    return () => {
-      autoSaveManagerRef.current.destroy();
-    };
-  }, [fileState.currentFilePath, fileState.fileFormat]);
-
-  // 文件操作
   const handleOpen = async () => {
     const result = await fileServiceRef.current.openFile();
     if (result.success && result.content) {
-      // 根据文件格式解析
-      if (result.path?.endsWith('.udn')) {
-        blockManagerRef.current = BlockManager.fromUDN(result.content);
-      } else {
-        blockManagerRef.current = BlockManager.fromMarkdown(result.content);
-      }
+      blockManagerRef.current = BlockManager.fromMarkdown(result.content);
       setBlocks(blockManagerRef.current.getBlocks());
       setLayoutRows(blockManagerRef.current.getLayoutRows());
+      setViewMode('single-file');
     }
   };
 
@@ -117,27 +94,20 @@ function App() {
     await autoSaveManagerRef.current.saveNow();
   };
 
-  const handleSaveAs = async () => {
-    const content =
-      fileState.fileFormat === 'udn'
-        ? blockManagerRef.current.toUDN()
-        : blockManagerRef.current.toMarkdown();
-
-    await fileServiceRef.current.saveFileAs(content);
-  };
-
   const handleNew = () => {
     blockManagerRef.current = new BlockManager();
     setBlocks([]);
     setLayoutRows([]);
     fileServiceRef.current.createNewFile();
+    setViewMode('single-file');
   };
 
-  // 块操作
   const handleUpdateBlock = (block: Block) => {
     blockManagerRef.current.updateBlock(block.id, block);
     setBlocks(blockManagerRef.current.getBlocks());
-    fileServiceRef.current.markAsModified();
+    if (viewMode === 'single-file') {
+      fileServiceRef.current.markAsModified();
+    }
     autoSaveManagerRef.current.onContentChange();
   };
 
@@ -147,7 +117,7 @@ function App() {
       setBlocks(blockManagerRef.current.getBlocks());
       setLayoutRows(blockManagerRef.current.getLayoutRows());
       setEditingBlockId(newBlock.id);
-      fileServiceRef.current.markAsModified();
+      if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
       autoSaveManagerRef.current.onContentChange();
     }
   };
@@ -155,7 +125,7 @@ function App() {
   const handleColumnResize = (rowId: string, columnId: string, newWidth: number) => {
     blockManagerRef.current.resizeColumn(rowId, columnId, newWidth);
     setLayoutRows(blockManagerRef.current.getLayoutRows());
-    fileServiceRef.current.markAsModified();
+    if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
     autoSaveManagerRef.current.onContentChange();
   };
 
@@ -163,7 +133,6 @@ function App() {
     setEditingBlockId(editingBlockId === blockId ? null : blockId);
   };
 
-  // 处理创建新块（通过 Enter 键）
   const handleCreateNewBlock = (
     currentBlockId: string,
     position: 'before' | 'after' | 'split',
@@ -172,100 +141,57 @@ function App() {
     const currentBlock = blockManagerRef.current.getBlock(currentBlockId);
     if (!currentBlock) return;
 
-    // 创建新块
     const newBlock = blockManagerRef.current.addBlock(
       'paragraph',
       content ? `<p>${content}</p>` : ''
     );
-
-    // 根据位置插入新块
-    const blocks = blockManagerRef.current.getBlocks();
-    const currentIndex = blocks.findIndex(b => b.id === currentBlockId);
+    const allBlocks = blockManagerRef.current.getBlocks();
+    const currentIndex = allBlocks.findIndex(b => b.id === currentBlockId);
 
     if (currentIndex !== -1) {
-      // 移除新添加的块
       blockManagerRef.current.deleteBlock(newBlock.id);
-
-      // 根据位置重新插入
       if (position === 'before') {
-        blocks.splice(currentIndex, 0, newBlock);
+        allBlocks.splice(currentIndex, 0, newBlock);
       } else {
-        blocks.splice(currentIndex + 1, 0, newBlock);
+        allBlocks.splice(currentIndex + 1, 0, newBlock);
       }
-
-      // 更新 BlockManager
-      blockManagerRef.current = new BlockManager(blocks, blockManagerRef.current.getLayoutRows());
-
-      // 如果当前块有布局信息，需要更新布局
-      if (currentBlock.layoutRowId && currentBlock.layoutColumnId) {
-        const layoutRows = blockManagerRef.current.getLayoutRows();
-        const row = layoutRows.find(r => r.id === currentBlock.layoutRowId);
-        if (row) {
-          const column = row.columns.find(c => c.id === currentBlock.layoutColumnId);
-          if (column) {
-            const blockIndex = column.blockIds.indexOf(currentBlockId);
-            if (blockIndex !== -1) {
-              if (position === 'before') {
-                column.blockIds.splice(blockIndex, 0, newBlock.id);
-              } else {
-                column.blockIds.splice(blockIndex + 1, 0, newBlock.id);
-              }
-
-              // 设置新块的布局信息
-              newBlock.layoutRowId = currentBlock.layoutRowId;
-              newBlock.layoutColumnId = currentBlock.layoutColumnId;
-            }
-          }
-        }
-      }
-
+      blockManagerRef.current = new BlockManager(
+        allBlocks,
+        blockManagerRef.current.getLayoutRows()
+      );
       setBlocks([...blockManagerRef.current.getBlocks()]);
       setLayoutRows([...blockManagerRef.current.getLayoutRows()]);
       setEditingBlockId(newBlock.id);
-      fileServiceRef.current.markAsModified();
+      if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
       autoSaveManagerRef.current.onContentChange();
     }
   };
 
-  // 处理拖动：根据 Alt 键决定是创建并列块还是排序
   const handleDragBlock = (sourceBlockId: string, targetBlockId: string) => {
     setDraggingBlockId(null);
-
     if (sourceBlockId === targetBlockId) return;
 
     const sourceBlock = blockManagerRef.current.getBlock(sourceBlockId);
     const targetBlock = blockManagerRef.current.getBlock(targetBlockId);
-
     if (!sourceBlock || !targetBlock) return;
 
-    // 如果按下 Alt 键，创建并列布局
     if (isAltKeyPressed) {
-      // 如果目标块已经在并列布局中，将源块移动到同一行
       if (targetBlock.layoutRowId && targetBlock.layoutColumnId) {
         blockManagerRef.current.moveBlockToColumn(sourceBlockId, targetBlock.layoutColumnId);
       } else {
-        // 否则创建新的并列布局
         const newBlock = blockManagerRef.current.createSiblingBlock(targetBlockId);
         if (newBlock) {
-          // 将源块移动到新列
           blockManagerRef.current.moveBlockToColumn(sourceBlockId, newBlock.layoutColumnId!);
-          // 删除刚创建的空块
           blockManagerRef.current.deleteBlockFromLayout(newBlock.id);
         }
       }
     } else {
-      // 普通拖动，进行块排序
       const allBlocks = blockManagerRef.current.getBlocks();
       const sourceIndex = allBlocks.findIndex(b => b.id === sourceBlockId);
       const targetIndex = allBlocks.findIndex(b => b.id === targetBlockId);
-
       if (sourceIndex !== -1 && targetIndex !== -1) {
-        // 移除源块
         const [movedBlock] = allBlocks.splice(sourceIndex, 1);
-        // 插入到目标位置
         allBlocks.splice(targetIndex, 0, movedBlock);
-
-        // 更新 BlockManager
         blockManagerRef.current = new BlockManager(
           allBlocks,
           blockManagerRef.current.getLayoutRows()
@@ -275,69 +201,211 @@ function App() {
 
     setBlocks(blockManagerRef.current.getBlocks());
     setLayoutRows(blockManagerRef.current.getLayoutRows());
-    fileServiceRef.current.markAsModified();
+    if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
     autoSaveManagerRef.current.onContentChange();
   };
 
+  const handleOpenWorkspace = async () => {
+    const ws = await workspaceManagerRef.current.openWorkspace();
+    if (ws) {
+      setWorkspace(ws);
+      setViewMode('workspace');
+      setCurrentChapterId(null);
+      setCurrentChapterData(null);
+      setBlocks([]);
+      setLayoutRows([]);
+    }
+  };
+
+  const handleCreateWorkspace = async () => {
+    const api = window.electronAPI;
+    if (!api?.prompt) {
+      console.error('prompt API not available');
+      return;
+    }
+
+    const selectedPath = await api.prompt('请选择要创建工作区的文件夹：');
+    if (!selectedPath) return;
+
+    const name = selectedPath.split(/[/\\]/).pop() || '我的小说';
+    const ws = await workspaceManagerRef.current.createWorkspace(name, selectedPath);
+    if (ws) {
+      setWorkspace(ws);
+      setViewMode('workspace');
+    }
+  };
+
+  const handleCloseWorkspace = () => {
+    workspaceManagerRef.current.closeWorkspace();
+    setWorkspace(null);
+    setCurrentChapterId(null);
+    setCurrentChapterData(null);
+    setBlocks([]);
+    setLayoutRows([]);
+    setViewMode('welcome');
+  };
+
+  const handleChapterSelect = async (chapterId: string) => {
+    if (currentChapterId && currentChapterId !== chapterId) {
+      await saveCurrentChapter();
+    }
+    if (!workspace) return;
+
+    const chapter = workspace.chapters.find(ch => ch.id === chapterId);
+    if (!chapter) return;
+
+    const data = await chapterServiceRef.current.loadChapter(workspace.path, chapter.path);
+    if (data) {
+      setCurrentChapterId(chapterId);
+      setCurrentChapterData(data);
+      blockManagerRef.current = new BlockManager(data.blocks, data.layoutRows);
+      setBlocks(data.blocks);
+      setLayoutRows(data.layoutRows);
+    }
+  };
+
+  const handleChapterCreate = async () => {
+    if (!workspace) return;
+
+    const api = window.electronAPI;
+    if (!api?.prompt) {
+      console.error('prompt API not available');
+      return;
+    }
+
+    const title = await api.prompt('请输入章节标题：');
+    const newChapter = await chapterServiceRef.current.createChapter(
+      workspace.path,
+      title || undefined
+    );
+    if (newChapter) {
+      await workspaceManagerRef.current.refreshWorkspace();
+      const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
+      if (updatedWorkspace) setWorkspace(updatedWorkspace);
+      handleChapterSelect(newChapter.id);
+    }
+  };
+
+  const handleChapterDelete = async (chapterId: string) => {
+    if (!workspace) return;
+    const chapter = workspace.chapters.find(ch => ch.id === chapterId);
+    if (!chapter || !confirm('确定删除此章节？')) return;
+
+    const success = await chapterServiceRef.current.deleteChapter(workspace.path, chapter.path);
+    if (success) {
+      await workspaceManagerRef.current.refreshWorkspace();
+      const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
+      if (updatedWorkspace) setWorkspace(updatedWorkspace);
+      if (currentChapterId === chapterId) {
+        setCurrentChapterId(null);
+        setCurrentChapterData(null);
+        setBlocks([]);
+        setLayoutRows([]);
+      }
+    }
+  };
+
+  const handleChapterReorder = async (chapterIds: string[]) => {
+    if (!workspace) return;
+    await chapterServiceRef.current.reorderChapters(workspace.path, chapterIds);
+    await workspaceManagerRef.current.refreshWorkspace();
+    const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
+    if (updatedWorkspace) setWorkspace(updatedWorkspace);
+  };
+
+  const handleMaterialSelect = (id: string) => console.log('Material:', id);
+  const handleMaterialCreate = (type: string) => console.log('Create:', type);
+  const handleMaterialDelete = (id: string) => console.log('Delete:', id);
+
+  if (viewMode === 'welcome') {
+    return (
+      <WelcomeScreen
+        onCreateWorkspace={handleCreateWorkspace}
+        onOpenWorkspace={handleOpenWorkspace}
+        onNewDocument={handleNew}
+        onOpenDocument={handleOpen}
+      />
+    );
+  }
+
+  if (viewMode === 'workspace' && workspace) {
+    return (
+      <div className="h-screen flex flex-col">
+        <TopBar
+          viewMode="workspace"
+          title={workspace.project.title}
+          isModified={fileState.isModified}
+          saveStatus={fileState.saveStatus}
+          lastSavedTime={fileState.lastSavedTime}
+          onSave={handleSave}
+          onCloseWorkspace={handleCloseWorkspace}
+        />
+        <div className="flex-1 overflow-hidden">
+          <WorkspaceView
+            workspace={workspace}
+            currentChapterId={currentChapterId}
+            currentMaterialId={null}
+            onChapterSelect={handleChapterSelect}
+            onChapterCreate={handleChapterCreate}
+            onChapterDelete={handleChapterDelete}
+            onChapterReorder={handleChapterReorder}
+            onMaterialSelect={handleMaterialSelect}
+            onMaterialCreate={handleMaterialCreate}
+            onMaterialDelete={handleMaterialDelete}
+          >
+            <EditorView
+              blocks={blocks}
+              layoutRows={layoutRows}
+              editingBlockId={editingBlockId}
+              draggingBlockId={draggingBlockId}
+              title={currentChapterData?.meta.title}
+              saveStatus={fileState.saveStatus}
+              lastSavedTime={fileState.lastSavedTime}
+              emptyMessage="选择一个章节开始编辑"
+              onUpdateBlock={handleUpdateBlock}
+              onCreateSibling={handleCreateSibling}
+              onColumnResize={handleColumnResize}
+              onToggleEdit={handleToggleEdit}
+              onCreateNewBlock={handleCreateNewBlock}
+              onDragBlock={handleDragBlock}
+              onSetDraggingBlock={setDraggingBlockId}
+            />
+          </WorkspaceView>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="min-h-screen bg-paper-50 bg-paper-texture">
-      {/* 文件菜单 */}
-      <FileMenu
-        fileName={fileServiceRef.current.getFileName()}
+    <div className="h-screen flex flex-col bg-paper-50">
+      <TopBar
+        viewMode="single-file"
+        title={fileServiceRef.current.getFileName()}
         isModified={fileState.isModified}
+        saveStatus={fileState.saveStatus}
+        lastSavedTime={fileState.lastSavedTime}
+        onNew={handleNew}
         onOpen={handleOpen}
         onSave={handleSave}
-        onSaveAs={handleSaveAs}
-        onNew={handleNew}
       />
-
-      <header className="bg-white shadow-paper border-b border-paper-300">
-        <div className="px-8 py-5 flex justify-between items-center">
-          <div className="animate-fade-in">
-            <h1 className="text-2xl font-bold text-charcoal-900 font-display">
-              未知叙事
-              <span className="text-lg font-normal text-charcoal-500 ml-2">小说块编辑器</span>
-            </h1>
-            <p className="text-sm text-charcoal-500 mt-1.5 font-ui">
-              基于 Markdown + 块编辑 + 双链的桌面端编辑器
-            </p>
-          </div>
-
-          {/* 保存状态指示器 */}
-          <SaveStatusIndicator
-            status={fileState.saveStatus}
-            lastSavedTime={fileState.lastSavedTime}
-          />
-        </div>
-      </header>
-
-      <main className="container mx-auto px-8 py-10">
-        <div className="bg-white rounded-2xl shadow-paper border border-paper-300 p-8 animate-slide-up">
-          {/* 布局行列表 */}
-          {layoutRows.length > 0 ? (
-            layoutRows.map(row => (
-              <LayoutRowComponent
-                key={row.id}
-                row={row}
-                blocks={blocks}
-                onUpdateBlock={handleUpdateBlock}
-                onCreateSibling={handleCreateSibling}
-                onColumnResize={handleColumnResize}
-                editingBlockId={editingBlockId}
-                onToggleEdit={handleToggleEdit}
-                onCreateNewBlock={handleCreateNewBlock}
-                onDragBlock={handleDragBlock}
-                draggingBlockId={draggingBlockId}
-                onSetDraggingBlock={setDraggingBlockId}
-              />
-            ))
-          ) : (
-            <div className="text-center py-16 text-charcoal-400">
-              <p className="text-lg">没有内容，请打开文件或创建新文档</p>
-            </div>
-          )}
-        </div>
-      </main>
+      <div className="flex-1 overflow-hidden">
+        <EditorView
+          blocks={blocks}
+          layoutRows={layoutRows}
+          editingBlockId={editingBlockId}
+          draggingBlockId={draggingBlockId}
+          title={fileServiceRef.current.getFileName()}
+          saveStatus={fileState.saveStatus}
+          lastSavedTime={fileState.lastSavedTime}
+          emptyMessage="没有内容，请打开文件或创建新文档"
+          onUpdateBlock={handleUpdateBlock}
+          onCreateSibling={handleCreateSibling}
+          onColumnResize={handleColumnResize}
+          onToggleEdit={handleToggleEdit}
+          onCreateNewBlock={handleCreateNewBlock}
+          onDragBlock={handleDragBlock}
+          onSetDraggingBlock={setDraggingBlockId}
+        />
+      </div>
     </div>
   );
 }

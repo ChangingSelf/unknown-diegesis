@@ -1,5 +1,34 @@
-// 块类型定义
-export type BlockType = 'heading' | 'paragraph' | 'quote' | 'bulletList' | 'orderedList' | 'taskList' | 'horizontalRule';
+export type BlockType =
+  | 'heading'
+  | 'paragraph'
+  | 'quote'
+  | 'bulletList'
+  | 'orderedList'
+  | 'taskList'
+  | 'horizontalRule'
+  | 'dice';
+
+export interface DiceBlockData {
+  formula: string;
+  result?: number;
+  rolledAt?: string;
+}
+
+export interface Block {
+  id: string;
+  type: BlockType;
+  content: string;
+  references?: string[];
+  referencedBy?: string[];
+  layoutRowId?: string;
+  layoutColumnId?: string;
+  diceData?: DiceBlockData;
+  metadata?: {
+    tags?: string[];
+    created?: Date;
+    modified?: Date;
+  };
+}
 
 // 块数据结构
 export interface Block {
@@ -10,6 +39,7 @@ export interface Block {
   referencedBy?: string[]; // 被引用的块 ID（反向双链）
   layoutRowId?: string; // 所属布局行 ID
   layoutColumnId?: string; // 所属布局列 ID
+  diceData?: DiceBlockData; // 骰子块特有数据
   metadata?: {
     // 预留元数据字段
     tags?: string[];
@@ -66,5 +96,3 @@ export interface FileState {
   fileFormat: 'md' | 'udn' | 'txt';
   saveStatus: SaveStatus;
 }
-
-

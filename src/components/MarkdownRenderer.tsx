@@ -77,20 +77,41 @@ const parseMarkdown = (content: string): { html: string; isHeading: boolean } =>
 };
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ block, onEdit }) => {
-  // 如果内容已经是 HTML 格式（从 Tiptap 编辑器来），直接使用
+  if (block.type === 'dice') {
+    return (
+      <div
+        className="dice-block-view p-4 bg-paper-50 rounded-lg border border-paper-300 cursor-pointer mb-2"
+        onClick={onEdit}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-xl font-semibold text-charcoal-800">
+              {block.diceData?.formula || '1d20'}
+            </span>
+            <span className="ml-2 text-charcoal-500">=</span>
+            <span className="ml-2 text-2xl font-bold text-gold-600">
+              {block.diceData?.result ?? '?'}
+            </span>
+          </div>
+          {block.diceData?.result !== undefined && (
+            <div className="text-sm text-charcoal-500">
+              {new Date(block.diceData.rolledAt || '').toLocaleString('zh-CN')}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   let html = block.content;
   let isHeading = false;
 
-  // 检查是否是 HTML 格式
   const isHTML = block.content.includes('<') && block.content.includes('>');
 
   if (isHTML) {
-    // 直接使用 HTML 内容
     html = block.content;
-    // 检查是否包含标题标签
-    isHeading = /<h[1-6]/.test(html);
+    isHeading = /<h[1-6]>/.test(html);
   } else {
-    // Markdown 格式，进行解析
     const parsed = parseMarkdown(block.content);
     html = parsed.html;
     isHeading = parsed.isHeading;

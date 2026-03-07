@@ -12,6 +12,7 @@ import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import { Block } from '../types/block';
 import MarkdownRenderer from './MarkdownRenderer';
 import { EnterKeyExtension } from '../extensions/EnterKeyExtension';
+import DiceBlock from './DiceBlock';
 
 interface BlockEditorProps {
   block: Block;
@@ -145,8 +146,21 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   };
 
-  // 如果不是编辑状态，显示Markdown渲染结果
   if (!isEditing) {
+    if (block.type === 'dice') {
+      return (
+        <div
+          className={`relative ${isDragging ? 'opacity-50' : ''}`}
+          draggable={!isEditing}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          <DiceBlock block={block} onUpdate={onUpdate} isEditing={false} />
+        </div>
+      );
+    }
+
     return (
       <div
         className={`relative ${isDragging ? 'opacity-50' : ''}`}
@@ -160,7 +174,25 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     );
   }
 
-  // 编辑状态
+  if (block.type === 'dice') {
+    return (
+      <div className="block-editor editing mb-2" onDragOver={handleDragOver} onDrop={handleDrop}>
+        <div className="flex items-start group">
+          <div
+            className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            draggable
+            onDragStart={handleDragStart}
+          >
+            ⋮⋮
+          </div>
+          <div className="flex-1">
+            <DiceBlock block={block} onUpdate={onUpdate} isEditing />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="block-editor editing mb-2" onDragOver={handleDragOver} onDrop={handleDrop}>
       <div className="flex items-start group">

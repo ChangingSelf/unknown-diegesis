@@ -8,7 +8,7 @@ export class BlockManager {
   constructor(initialBlocks: Block[] = [], layoutRows: LayoutRow[] = []) {
     this.blocks = initialBlocks;
     this.layoutRows = layoutRows;
-    
+
     // 如果没有布局，为每个块创建默认单列布局
     if (this.layoutRows.length === 0 && this.blocks.length > 0) {
       this.initializeDefaultLayout();
@@ -72,8 +72,12 @@ export class BlockManager {
 
   // 重新排序块
   reorderBlocks(fromIndex: number, toIndex: number): boolean {
-    if (fromIndex < 0 || fromIndex >= this.blocks.length || 
-        toIndex < 0 || toIndex >= this.blocks.length) {
+    if (
+      fromIndex < 0 ||
+      fromIndex >= this.blocks.length ||
+      toIndex < 0 ||
+      toIndex >= this.blocks.length
+    ) {
       return false;
     }
 
@@ -231,20 +235,20 @@ export class BlockManager {
   // 去除 HTML 标签，保留纯文本
   private stripHtmlTags(html: string): string {
     if (!html) return '';
-    
+
     // 处理换行标签
     let text = html
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n')
       .replace(/<\/div>/gi, '\n')
       .replace(/<\/li>/gi, '\n');
-    
+
     // 处理列表项
     text = text.replace(/<li[^>]*>/gi, '- ');
-    
+
     // 移除所有其他 HTML 标签
     text = text.replace(/<[^>]+>/g, '');
-    
+
     // 解码 HTML 实体
     text = text
       .replace(/&nbsp;/g, ' ')
@@ -253,12 +257,10 @@ export class BlockManager {
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'");
-    
+
     // 清理多余空白
-    text = text
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-    
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+
     return text;
   }
 
@@ -355,7 +357,7 @@ export class BlockManager {
     if (columnIndex === -1) return false;
 
     const column = row.columns[columnIndex];
-    
+
     // 只能移除空列
     if (column.blockIds.length > 0) return false;
 
@@ -475,20 +477,73 @@ export class BlockManager {
     return this.deleteBlock(blockId);
   }
 
-  // 序列化为 UDN 格式（包含布局信息）
-  toUDN(): string {
+  // 序列化为 UD 格式（新格式，包含版本和元数据）
+  toUD(meta?: { title?: string; type?: string }): string {
     return JSON.stringify(
       {
+        version: '1.0',
+        type: meta?.type || 'chapter',
+        meta: {
+          id: this.document?.id || this.generateId(),
+          title: meta?.title || this.document?.title || '未命名',
+          number: 1,
+          status: 'draft',
+          wordCount: this.blocks.reduce((sum, block) => sum + this.countWords(block.content), 0),
+          created: this.document?.created?.toISOString() || new Date().toISOString(),
+          modified: new Date().toISOString(),
+        },
         blocks: this.blocks,
         layoutRows: this.layoutRows,
-        document: this.document,
       },
       null,
       2
     );
   }
 
-  // 从 UDN 格式加载
+  // 从 UD 格式加载（支持新旧格式）
+  static fromUD(ud: string): BlockManager {
+    try {
+      const data = JSON.parse(ud);
+
+      // 新格式（version 1.0）
+      if (data.version === '1.0') {
+        const manager = new BlockManager(data.blocks || [], data.layoutRows || []);
+        if (data.meta) {
+          manager.document = {
+            id: data.meta.id,
+            title: data.meta.title,
+            blocks: data.blocks || [],
+            created: new Date(data.meta.created),
+            modified: new Date(data.meta.modified),
+          };
+        }
+        return manager;
+      }
+
+      // 旧格式（直接包含 blocks/layoutRows/document）
+      return BlockManager.fromUDN(ud);
+    } catch (error) {
+      console.error('Failed to parse UD:', error);
+      return new BlockManager();
+    }
+  }
+
+  // 统计字数
+  private countWords(content: string): number {
+    if (!content) return 0;
+    const text = this.stripHtmlTags(content);
+    // 中文字符按字符计数，英文按单词计数
+    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const englishWords = (text.match(/[a-zA-Z]+/g) || []).length;
+    return chineseChars + englishWords;
+  }
+
+  // 序列化为 UDN 格式（旧格式，保留向后兼容）
+  toUDN(): string {
+    return this.toUD();
+  }
+
+  // 从 UDN 格式加载（旧格式，保留向后兼容）
   static fromUDN(udn: string): BlockManager {
     try {
       const data = JSON.parse(udn);
@@ -503,5 +558,3 @@ export class BlockManager {
     }
   }
 }
-
-
