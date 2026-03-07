@@ -22,7 +22,7 @@ export class ChapterService {
    */
   async getChapters(workspacePath: string): Promise<ChapterMeta[]> {
     const api = window.electronAPI;
-    if (!api?.workspaceReadDir) {
+    if (!api?.workspaceReadDir || !api?.workspaceReadFile) {
       return [];
     }
 
@@ -33,28 +33,29 @@ export class ChapterService {
       const result = await api.workspaceReadDir(chaptersPath);
 
       if (result?.success && result?.files) {
-        const udFiles = result.files
-          .filter((f: string) => f.endsWith('.ud'))
-          .sort((a: string, b: string) => {
-            const numA = parseInt(a.match(/^(\d+)/)?.[1] || '0');
-            const numB = parseInt(b.match(/^(\d+)/)?.[1] || '0');
-            return numA - numB;
-          });
+        const uuidFiles = result.files.filter((f: string) => /^[a-f0-9]{12}\.ud$/.test(f));
 
-        for (let i = 0; i < udFiles.length; i++) {
-          const file = udFiles[i];
-          const parsed = this.parseChapterFile(file);
-          chapters.push({
-            id: `chapter_${i}`,
-            number: parsed?.number ?? i + 1,
-            title: parsed?.title ?? file.replace('.ud', ''),
-            path: `chapters/${file}`,
-            status: 'draft',
-            wordCount: 0,
-            created: new Date().toISOString(),
-            modified: new Date().toISOString(),
-          });
+        for (const file of uuidFiles) {
+          const filePath = `chapters/${file}`;
+          const fileResult = await api.workspaceReadFile(`${workspacePath}/${filePath}`);
+
+          if (fileResult?.success && fileResult?.content) {
+            try {
+              const data = JSON.parse(fileResult.content);
+              if (data?.meta) {
+                chapters.push({
+                  ...data.meta,
+                  path: filePath,
+                });
+                continue;
+              }
+            } catch {
+              // 忽略解析失败的文件
+            }
+          }
         }
+
+        chapters.sort((a, b) => a.number - b.number);
       }
     } catch (error) {
       console.error('Failed to get chapters:', error);
@@ -76,14 +77,15 @@ export class ChapterService {
     try {
       const chapters = await this.getChapters(workspacePath);
       const nextNumber = this.getNextChapterNumber(chapters);
-      const fileName = `${String(nextNumber).padStart(3, '0')}${title ? `-${title}` : ''}.ud`;
+      const uuid = this.generateUUID();
+      const fileName = `${uuid}.ud`;
       const filePath = `${workspacePath}/chapters/${fileName}`;
 
       const chapterData: ChapterData = {
         version: '1.0',
         type: 'chapter',
         meta: {
-          id: `chapter_${Date.now()}`,
+          id: uuid,
           number: nextNumber,
           title: title || `第${nextNumber}章`,
           path: `chapters/${fileName}`,
@@ -219,11 +221,6 @@ export class ChapterService {
    * 重排序章节
    */
   async reorderChapters(workspacePath: string, chapterIds: string[]): Promise<boolean> {
-    const api = window.electronAPI;
-    if (!api?.workspaceMove) {
-      return false;
-    }
-
     try {
       const chapters = await this.getChapters(workspacePath);
       const idToChapter = new Map(chapters.map(ch => [ch.id, ch]));
@@ -231,14 +228,9 @@ export class ChapterService {
       for (let i = 0; i < chapterIds.length; i++) {
         const chapter = idToChapter.get(chapterIds[i]);
         if (chapter) {
-          const oldPath = `${workspacePath}/${chapter.path}`;
-          const newNumber = String(i + 1).padStart(3, '0');
-          const title = chapter.title.replace(/^第\d+章\s*/, '');
-          const newFileName = `${newNumber}-${title}.ud`;
-          const newPath = `${workspacePath}/chapters/${newFileName}`;
-
-          if (chapter.path !== `chapters/${newFileName}`) {
-            await api.workspaceMove(oldPath, newPath);
+          const newNumber = i + 1;
+          if (chapter.number !== newNumber) {
+            await this.updateChapterMeta(workspacePath, chapter.path, { number: newNumber });
           }
         }
       }
@@ -260,15 +252,9 @@ export class ChapterService {
   }
 
   /**
-   * 从文件名解析章节信息
+   * 生成12位UUID
    */
-  private parseChapterFile(fileName: string): { number: number; title: string } | null {
-    const match = fileName.match(/^(\d+)-?(.*)\.ud$/);
-    if (!match) return null;
-
-    return {
-      number: parseInt(match[1]),
-      title: match[2] || `第${match[1]}章`,
-    };
+  private generateUUID(): string {
+    return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
   }
 }

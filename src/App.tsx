@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Layout } from 'antd';
+import { Layout, message } from 'antd';
 import { BlockManager } from './utils/BlockManager';
 import { Block } from './types/block';
 import { createEmptyDocument, createDocumentFromText } from './types/tiptap';
@@ -227,10 +227,14 @@ function App() {
   };
 
   const handleOpenWorkspace = async () => {
-    const ws = await workspaceManagerRef.current.openWorkspace();
-    if (ws) {
-      recentWorkspacesServiceRef.current.addWorkspace(ws.path, ws.name);
-      setWorkspace(ws);
+    const result = await workspaceManagerRef.current.openWorkspace();
+    if (result.error) {
+      message.error(result.error);
+      return;
+    }
+    if (result.workspace) {
+      recentWorkspacesServiceRef.current.addWorkspace(result.workspace.path, result.workspace.name);
+      setWorkspace(result.workspace);
       setViewMode('workspace');
       setCurrentChapterId(null);
       setCurrentChapterData(null);
@@ -242,7 +246,7 @@ function App() {
   const handleCreateWorkspace = async () => {
     const api = window.electronAPI;
     if (!api?.prompt) {
-      console.error('prompt API not available');
+      message.error('无法访问文件系统');
       return;
     }
 
@@ -250,19 +254,27 @@ function App() {
     if (!selectedPath) return;
 
     const name = selectedPath.split(/[/\\]/).pop() || '我的小说';
-    const ws = await workspaceManagerRef.current.createWorkspace(name, selectedPath);
-    if (ws) {
-      recentWorkspacesServiceRef.current.addWorkspace(ws.path, ws.name);
-      setWorkspace(ws);
+    const result = await workspaceManagerRef.current.createWorkspace(name, selectedPath);
+    if (result.error) {
+      message.error(result.error);
+      return;
+    }
+    if (result.workspace) {
+      recentWorkspacesServiceRef.current.addWorkspace(result.workspace.path, result.workspace.name);
+      setWorkspace(result.workspace);
       setViewMode('workspace');
     }
   };
 
   const handleOpenRecentWorkspace = async (path: string) => {
-    const ws = await workspaceManagerRef.current.openWorkspaceFromPath(path);
-    if (ws) {
-      recentWorkspacesServiceRef.current.addWorkspace(ws.path, ws.name);
-      setWorkspace(ws);
+    const result = await workspaceManagerRef.current.openWorkspaceFromPath(path);
+    if (result.error) {
+      message.error(result.error);
+      return;
+    }
+    if (result.workspace) {
+      recentWorkspacesServiceRef.current.addWorkspace(result.workspace.path, result.workspace.name);
+      setWorkspace(result.workspace);
       setViewMode('workspace');
       setCurrentChapterId(null);
       setCurrentChapterData(null);

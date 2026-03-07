@@ -4,6 +4,11 @@ import { ChapterMeta } from '../types/chapter';
 import { MaterialMeta } from '../types/material';
 import { ProjectService } from './ProjectService';
 
+export interface WorkspaceResult {
+  workspace: Workspace | null;
+  error?: string;
+}
+
 /**
  * 工作区管理器
  * 负责工作区的打开、创建、关闭和状态管理
@@ -20,16 +25,15 @@ export class WorkspaceManager {
   /**
    * 打开工作区（弹出选择对话框）
    */
-  async openWorkspace(): Promise<Workspace | null> {
+  async openWorkspace(): Promise<WorkspaceResult> {
     const api = window.electronAPI;
     if (!api?.workspaceOpen) {
-      console.error('workspaceOpen API not available');
-      return null;
+      return { workspace: null, error: '无法访问文件系统' };
     }
 
     const result = await api.workspaceOpen();
     if (!result?.success || !result?.path) {
-      return null;
+      return { workspace: null };
     }
 
     return this.openWorkspaceFromPath(result.path);
@@ -38,10 +42,10 @@ export class WorkspaceManager {
   /**
    * 从指定路径打开工作区
    */
-  async openWorkspaceFromPath(path: string): Promise<Workspace | null> {
-    if (!(await this.isValidWorkspace(path))) {
-      console.error('Invalid workspace:', path);
-      return null;
+  async openWorkspaceFromPath(path: string): Promise<WorkspaceResult> {
+    const validation = await this.validateWorkspace(path);
+    if (!validation.valid) {
+      return { workspace: null, error: validation.error };
     }
 
     try {
@@ -57,32 +61,29 @@ export class WorkspaceManager {
       };
 
       this.notify();
-      return this.workspace;
+      return { workspace: this.workspace };
     } catch (error) {
-      console.error('Failed to open workspace:', error);
-      return null;
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      return { workspace: null, error: `打开工作区失败：${errorMessage}` };
     }
   }
 
   /**
    * 创建新工作区
    */
-  async createWorkspace(name: string, basePath?: string): Promise<Workspace | null> {
+  async createWorkspace(name: string, basePath?: string): Promise<WorkspaceResult> {
     const api = window.electronAPI;
     if (!api?.workspaceCreate) {
-      console.error('workspaceCreate API not available');
-      return null;
+      return { workspace: null, error: '无法访问文件系统' };
     }
 
     const path = basePath ?? '';
     const result = await api.workspaceCreate(path, name);
 
     if (!result?.success) {
-      console.error('Failed to create workspace:', result?.error);
-      return null;
+      return { workspace: null, error: result?.error || '创建工作区失败' };
     }
 
-    // Open the newly created workspace
     return this.openWorkspaceFromPath(path || name);
   }
 
@@ -133,24 +134,31 @@ export class WorkspaceManager {
   }
 
   /**
-   * 检测是否为有效工作区
+   * 验证工作区有效性
    */
-  private async isValidWorkspace(path: string): Promise<boolean> {
+  private async validateWorkspace(path: string): Promise<{ valid: boolean; error?: string }> {
     const api = window.electronAPI;
     if (!api?.workspaceReadDir) {
-      return false;
+      return { valid: false, error: '无法访问文件系统' };
     }
 
     try {
       const result = await api.workspaceReadDir(path);
-      if (!result?.success || !result?.files) {
-        return false;
+      if (!result?.success) {
+        return { valid: false, error: '文件夹不存在或无法访问' };
+      }
+      if (!result?.files) {
+        return { valid: false, error: '文件夹为空' };
       }
 
-      // 一个简单的有效性判断：目录中包含 project.json
-      return result.files.includes('project.json');
-    } catch {
-      return false;
+      if (!result.files.includes('project.json')) {
+        return { valid: false, error: '无效的工作区：缺少 project.json 文件' };
+      }
+
+      return { valid: true };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '未知错误';
+      return { valid: false, error: `验证工作区失败：${message}` };
     }
   }
 
@@ -164,7 +172,7 @@ export class WorkspaceManager {
     const chapters: ChapterMeta[] = [];
     const materials: MaterialMeta[] = [];
     const api = window.electronAPI;
-    if (!api?.workspaceReadDir) {
+    if (!api?.workspaceReadDir || !api?.workspaceReadFile) {
       return { chapters, materials };
     }
 
@@ -173,20 +181,28 @@ export class WorkspaceManager {
       const chaptersResult = await api.workspaceReadDir(chaptersPath);
 
       if (chaptersResult?.success && chaptersResult?.files) {
-        const udFiles = chaptersResult.files.filter((f: string) => f.endsWith('.ud'));
-        for (let i = 0; i < udFiles.length; i++) {
-          const file = udFiles[i];
-          chapters.push({
-            id: `chapter_${i}`,
-            number: i + 1,
-            title: file.replace('.ud', ''),
-            path: `chapters/${file}`,
-            status: 'draft',
-            wordCount: 0,
-            created: new Date().toISOString(),
-            modified: new Date().toISOString(),
-          } as ChapterMeta);
+        const uuidFiles = chaptersResult.files.filter((f: string) => /^[a-f0-9]{12}\.ud$/.test(f));
+
+        for (const file of uuidFiles) {
+          const filePath = `chapters/${file}`;
+          const fileResult = await api.workspaceReadFile(`${path}/${filePath}`);
+
+          if (fileResult?.success && fileResult?.content) {
+            try {
+              const data = JSON.parse(fileResult.content);
+              if (data?.meta) {
+                chapters.push({
+                  ...data.meta,
+                  path: filePath,
+                });
+              }
+            } catch {
+              // 忽略解析失败的文件
+            }
+          }
         }
+
+        chapters.sort((a, b) => a.number - b.number);
       }
     } catch (error) {
       console.error('Failed to scan chapters:', error);
