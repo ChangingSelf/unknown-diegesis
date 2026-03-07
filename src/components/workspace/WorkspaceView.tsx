@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Layout, Tabs, Typography, Statistic, Row, Col, Button } from 'antd';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -8,6 +9,9 @@ import {
 import { Workspace } from '@/types/workspace';
 import { ChapterList } from './ChapterList';
 import { MaterialPanel } from './MaterialPanel';
+
+const { Sider, Content } = Layout;
+const { Title, Text } = Typography;
 
 interface WorkspaceViewProps {
   workspace: Workspace;
@@ -36,114 +40,161 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onMaterialCreate,
   onMaterialDelete,
 }) => {
-  const [sidebarWidth] = useState(260);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'chapters' | 'materials'>('chapters');
-  const [showRightPanel] = useState(false);
+
+  const tabItems = [
+    {
+      key: 'chapters',
+      label: (
+        <span>
+          <FileTextOutlined />
+          章节
+        </span>
+      ),
+      children: (
+        <ChapterList
+          chapters={workspace.chapters}
+          currentChapterId={currentChapterId}
+          onSelect={onChapterSelect}
+          onCreate={onChapterCreate}
+          onDelete={onChapterDelete}
+          onReorder={onChapterReorder}
+        />
+      ),
+    },
+    {
+      key: 'materials',
+      label: (
+        <span>
+          <AppstoreOutlined />
+          素材
+        </span>
+      ),
+      children: (
+        <MaterialPanel
+          materials={workspace.materials}
+          currentMaterialId={currentMaterialId}
+          onSelect={onMaterialSelect}
+          onCreate={onMaterialCreate}
+          onDelete={onMaterialDelete}
+        />
+      ),
+    },
+  ];
 
   return (
-    <div className="flex h-screen bg-paper-50">
-      {/* 左侧边栏 - 章节和素材 */}
-      <div
-        className={`bg-white border-r border-paper-200 flex flex-col transition-all duration-300 ${
-          isSidebarCollapsed ? 'w-12' : ''
-        }`}
-        style={{ width: isSidebarCollapsed ? 48 : sidebarWidth }}
+    <Layout style={{ height: '100%', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+      <Sider
+        width={280}
+        collapsedWidth={48}
+        collapsed={collapsed}
+        trigger={null}
+        style={{ background: '#fff' }}
+        theme="light"
       >
         {/* 侧边栏头部 */}
-        <div className="flex items-center justify-between px-3 py-3 border-b border-paper-200 min-h-[52px]">
-          {!isSidebarCollapsed && (
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-semibold text-charcoal-800 truncate">{workspace.name}</h2>
-              <p className="text-xs text-charcoal-500">{workspace.chapters.length} 章节</p>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            height: 56,
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
+          {!collapsed && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Title
+                level={5}
+                style={{
+                  margin: 0,
+                  color: '#262626',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {workspace.name}
+              </Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {workspace.chapters.length} 章节
+              </Text>
             </div>
           )}
-          <button
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-1.5 hover:bg-paper-100 rounded-md text-charcoal-500 hover:text-charcoal-700 transition-colors"
-            title={isSidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
-          >
-            {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          </button>
+          <Button
+            type="text"
+            size="small"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? '展开侧边栏' : '折叠侧边栏'}
+          />
         </div>
 
-        {!isSidebarCollapsed && (
+        {!collapsed && (
           <>
-            {/* Tab 切换 - VS Code 风格图标 */}
-            <div className="flex border-b border-paper-200">
-              <button
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === 'chapters'
-                    ? 'text-gold-600 border-b-2 border-gold-500 bg-gold-50/50'
-                    : 'text-charcoal-500 hover:text-charcoal-700 hover:bg-paper-50'
-                }`}
-                onClick={() => setActiveTab('chapters')}
-              >
-                <FileTextOutlined />
-                <span>章节</span>
-              </button>
-              <button
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === 'materials'
-                    ? 'text-gold-600 border-b-2 border-gold-500 bg-gold-50/50'
-                    : 'text-charcoal-500 hover:text-charcoal-700 hover:bg-paper-50'
-                }`}
-                onClick={() => setActiveTab('materials')}
-              >
-                <AppstoreOutlined />
-                <span>素材</span>
-              </button>
-            </div>
-
             {/* Tab 内容 */}
-            <div className="flex-1 overflow-hidden">
-              {activeTab === 'chapters' ? (
-                <ChapterList
-                  chapters={workspace.chapters}
-                  currentChapterId={currentChapterId}
-                  onSelect={onChapterSelect}
-                  onCreate={onChapterCreate}
-                  onDelete={onChapterDelete}
-                  onReorder={onChapterReorder}
-                />
-              ) : (
-                <MaterialPanel
-                  materials={workspace.materials}
-                  currentMaterialId={currentMaterialId}
-                  onSelect={onMaterialSelect}
-                  onCreate={onMaterialCreate}
-                  onDelete={onMaterialDelete}
-                />
-              )}
+            <div style={{ height: 'calc(100% - 120px)', overflow: 'hidden' }}>
+              <Tabs
+                activeKey={activeTab}
+                onChange={key => setActiveTab(key as 'chapters' | 'materials')}
+                items={tabItems}
+                style={{ height: '100%' }}
+                size="small"
+              />
             </div>
 
             {/* 底部统计信息 */}
-            <div className="px-4 py-2 border-t border-paper-200 bg-paper-50/50">
-              <div className="flex items-center justify-between text-xs text-charcoal-500">
-                <span>{workspace.project.statistics.wordCount.toLocaleString()} 字</span>
-                <span>{workspace.materials.length} 素材</span>
-              </div>
+            <div
+              style={{
+                padding: '12px 16px',
+                borderTop: '1px solid #f0f0f0',
+                background: '#fafafa',
+              }}
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Statistic
+                    title={
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        总字数
+                      </Text>
+                    }
+                    value={workspace.project.statistics.wordCount}
+                    valueStyle={{ fontSize: 14, color: '#1890ff' }}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Statistic
+                    title={
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        素材数
+                      </Text>
+                    }
+                    value={workspace.materials.length}
+                    valueStyle={{ fontSize: 14, color: '#52c41a' }}
+                  />
+                </Col>
+              </Row>
             </div>
           </>
         )}
-      </div>
+      </Sider>
 
       {/* 中间编辑区 */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto">{children}</div>
-      </div>
-
-      {/* 右侧工具栏（预留） */}
-      {showRightPanel && (
-        <div className="w-64 bg-white border-l border-paper-200 flex flex-col">
-          <div className="px-4 py-3 border-b border-paper-200">
-            <h3 className="text-sm font-semibold text-charcoal-800">工具</h3>
-          </div>
-          <div className="flex-1 p-4 text-sm text-charcoal-500">
-            <p className="text-center text-charcoal-400 mt-8">工具栏功能开发中...</p>
-          </div>
-        </div>
-      )}
-    </div>
+      <Content
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          background: '#fff',
+          marginLeft: 8,
+          borderRadius: 8,
+        }}
+      >
+        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+      </Content>
+    </Layout>
   );
 };

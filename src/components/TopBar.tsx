@@ -182,16 +182,26 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="w-full h-12 bg-paper border-b border-gray-200 flex items-center px-4">
-      <div className="flex items-center gap-2">
-        <span className="text-lg font-semibold text-charcoal select-none">未知叙事</span>
+    <header
+      style={{
+        width: '100%',
+        height: 40,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 16px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 16, fontWeight: 600, color: '#262626', userSelect: 'none' }}>
+          未知叙事
+        </span>
       </div>
 
-      <div className="flex-1 text-center mx-4">
-        <Text className="select-none">{centerTitle}</Text>
+      <div style={{ flex: 1, textAlign: 'center', margin: '0 16px' }}>
+        <Text style={{ userSelect: 'none' }}>{centerTitle}</Text>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <SaveStatusIndicator
           status={saveStatus}
           isModified={isModified}

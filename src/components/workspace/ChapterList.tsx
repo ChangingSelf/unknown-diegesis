@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
-import { Button, List, Typography, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, CheckOutlined } from '@ant-design/icons';
+import { Button, List, Typography, Popconfirm, Tag, Tooltip } from 'antd';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  CheckCircleOutlined,
+  HolderOutlined,
+} from '@ant-design/icons';
 import { ChapterMeta } from '@/types/chapter';
 
 const { Text } = Typography;
@@ -13,6 +19,12 @@ interface ChapterListProps {
   onDelete: (chapterId: string) => void;
   onReorder: (chapterIds: string[]) => void;
 }
+
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+  draft: { color: 'default', label: '草稿' },
+  revising: { color: 'processing', label: '修改中' },
+  final: { color: 'success', label: '定稿' },
+};
 
 export const ChapterList: React.FC<ChapterListProps> = ({
   chapters,
@@ -60,22 +72,19 @@ export const ChapterList: React.FC<ChapterListProps> = ({
     setDragOverId(null);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return <EditOutlined />;
-      case 'revising':
-        return <EditOutlined />;
-      case 'final':
-        return <CheckOutlined />;
-      default:
-        return <EditOutlined />;
-    }
+  const getStatusTag = (status: string) => {
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+    const icon = status === 'final' ? <CheckCircleOutlined /> : <EditOutlined />;
+    return (
+      <Tag color={config.color} icon={icon} className="!m-0 !text-xs">
+        {config.label}
+      </Tag>
+    );
   };
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3 border-b border-gray-100">
         <Button type="primary" icon={<PlusOutlined />} onClick={onCreate} block>
           新建章节
         </Button>
@@ -83,60 +92,82 @@ export const ChapterList: React.FC<ChapterListProps> = ({
 
       <div className="flex-1 overflow-y-auto">
         {chapters.length === 0 ? (
-          <div className="p-4 text-center text-gray-400 text-sm">暂无章节，点击上方按钮创建</div>
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <EditOutlined className="text-3xl mb-2" />
+            <Text type="secondary">暂无章节</Text>
+            <Text type="secondary" className="text-xs">
+              点击上方按钮创建
+            </Text>
+          </div>
         ) : (
           <List
             dataSource={chapters}
-            renderItem={chapter => (
-              <List.Item
-                draggable
-                onDragStart={e => handleDragStart(e, chapter.id)}
-                onDragOver={e => handleDragOver(e, chapter.id)}
-                onDragEnd={handleDragEnd}
-                onDrop={e => handleDrop(e, chapter.id)}
-                onClick={() => onSelect(chapter.id)}
-                className={`cursor-pointer transition-colors ${
-                  currentChapterId === chapter.id
-                    ? 'bg-blue-50 border-r-2 border-blue-500'
-                    : 'hover:bg-gray-50'
-                } ${dragOverId === chapter.id ? 'border-t-2 border-blue-400' : ''}`}
-                actions={[
-                  <Popconfirm
-                    key="delete"
-                    title="确定删除此章节？"
-                    description="删除后无法恢复"
-                    onConfirm={e => {
-                      e?.stopPropagation();
-                      onDelete(chapter.id);
-                    }}
-                    onCancel={e => e?.stopPropagation()}
-                    okText="删除"
-                    cancelText="取消"
-                  >
-                    <Button
-                      type="text"
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={e => e.stopPropagation()}
-                    />
-                  </Popconfirm>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <div className="flex items-center gap-2">
-                      <Text type="secondary" className="w-6 text-xs">
-                        {String(chapter.number).padStart(2, '0')}
+            renderItem={chapter => {
+              const isSelected = currentChapterId === chapter.id;
+              const isDragOver = dragOverId === chapter.id;
+
+              return (
+                <List.Item
+                  draggable
+                  onDragStart={e => handleDragStart(e, chapter.id)}
+                  onDragOver={e => handleDragOver(e, chapter.id)}
+                  onDragEnd={handleDragEnd}
+                  onDrop={e => handleDrop(e, chapter.id)}
+                  onClick={() => onSelect(chapter.id)}
+                  className={`
+                    cursor-pointer transition-all duration-200 !px-3 !py-2
+                    ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}
+                    ${isDragOver ? 'border-t-2 border-t-blue-400 bg-blue-50/50' : ''}
+                  `}
+                  actions={[
+                    <Tooltip key="delete" title="删除章节">
+                      <Popconfirm
+                        title="确定删除此章节？"
+                        description="删除后无法恢复"
+                        onConfirm={e => {
+                          e?.stopPropagation();
+                          onDelete(chapter.id);
+                        }}
+                        onCancel={e => e?.stopPropagation()}
+                        okText="删除"
+                        okButtonProps={{ danger: true }}
+                        cancelText="取消"
+                      >
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={e => e.stopPropagation()}
+                          className="opacity-0 group-hover:opacity-100"
+                        />
+                      </Popconfirm>
+                    </Tooltip>,
+                  ]}
+                >
+                  <div className="flex items-center gap-2 w-full group">
+                    <HolderOutlined className="text-gray-300 cursor-grab" />
+                    <Text type="secondary" className="w-6 text-xs font-mono">
+                      {String(chapter.number).padStart(2, '0')}
+                    </Text>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Text
+                          strong={isSelected}
+                          className={`truncate ${isSelected ? '!text-blue-600' : '!text-gray-800'}`}
+                        >
+                          {chapter.title}
+                        </Text>
+                        {getStatusTag(chapter.status)}
+                      </div>
+                      <Text type="secondary" className="text-xs">
+                        {chapter.wordCount.toLocaleString()} 字
                       </Text>
-                      {getStatusIcon(chapter.status)}
                     </div>
-                  }
-                  title={chapter.title}
-                  description={`${chapter.wordCount.toLocaleString()} 字`}
-                />
-              </List.Item>
-            )}
+                  </div>
+                </List.Item>
+              );
+            }}
           />
         )}
       </div>

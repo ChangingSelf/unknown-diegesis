@@ -1,5 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { CloudUploadOutlined, FileImageOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Button, Segmented, Popconfirm } from 'antd';
+import {
+  CloudUploadOutlined,
+  FileImageOutlined,
+  FileTextOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
 import { AssetMeta } from '../../services/AssetService';
 
 interface AssetBrowserProps {
@@ -75,38 +81,15 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
       <div className="border-b border-paper-300 p-4 bg-paper-50">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-charcoal-800">资源管理</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-sm ${
-                filter === 'all'
-                  ? 'bg-gold-500 text-white'
-                  : 'bg-paper-200 text-charcoal-700 hover:bg-paper-300'
-              }`}
-            >
-              全部
-            </button>
-            <button
-              onClick={() => setFilter('image')}
-              className={`px-3 py-1.5 rounded-lg text-sm ${
-                filter === 'image'
-                  ? 'bg-gold-500 text-white'
-                  : 'bg-paper-200 text-charcoal-700 hover:bg-paper-300'
-              }`}
-            >
-              图片
-            </button>
-            <button
-              onClick={() => setFilter('document')}
-              className={`px-3 py-1.5 rounded-lg text-sm ${
-                filter === 'document'
-                  ? 'bg-gold-500 text-white'
-                  : 'bg-paper-200 text-charcoal-700 hover:bg-paper-300'
-              }`}
-            >
-              文档
-            </button>
-          </div>
+          <Segmented
+            value={filter}
+            onChange={value => setFilter(value as 'all' | 'image' | 'document')}
+            options={[
+              { value: 'all', label: '全部' },
+              { value: 'image', label: '图片' },
+              { value: 'document', label: '文档' },
+            ]}
+          />
         </div>
 
         <div
@@ -121,12 +104,13 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
             <CloudUploadOutlined className="text-5xl text-charcoal-400" />
             <p className="text-charcoal-600">
               拖拽文件到此处，或{' '}
-              <button
+              <Button
+                type="link"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-gold-600 hover:text-gold-700 font-medium"
+                className="!p-0 !h-auto"
               >
                 点击选择文件
-              </button>
+              </Button>
             </p>
             <input
               ref={fileInputRef}
@@ -167,15 +151,27 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
                         onClick={() => onInsert(asset.path)}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
+                        <Popconfirm
+                          title="确定删除此资源？"
+                          onConfirm={e => {
+                            e?.stopPropagation();
                             onDelete(asset.path);
                           }}
-                          className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          onCancel={e => e?.stopPropagation()}
+                          okText="删除"
+                          cancelText="取消"
                         >
-                          删除
-                        </button>
+                          <Button
+                            type="primary"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={e => e.stopPropagation()}
+                            className="opacity-0 group-hover:opacity-100"
+                          >
+                            删除
+                          </Button>
+                        </Popconfirm>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-2">
                         <div className="truncate">{asset.name}</div>
@@ -213,15 +209,27 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
+                      <Popconfirm
+                        title="确定删除此资源？"
+                        onConfirm={e => {
+                          e?.stopPropagation();
                           onDelete(asset.path);
                         }}
-                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        onCancel={e => e?.stopPropagation()}
+                        okText="删除"
+                        cancelText="取消"
                       >
-                        删除
-                      </button>
+                        <Button
+                          type="primary"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={e => e.stopPropagation()}
+                          className="opacity-0 group-hover:opacity-100"
+                        >
+                          删除
+                        </Button>
+                      </Popconfirm>
                     </div>
                   ))}
                 </div>

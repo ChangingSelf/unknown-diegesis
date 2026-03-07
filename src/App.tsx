@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Layout } from 'antd';
 import { BlockManager } from './utils/BlockManager';
 import { Block } from './types/block';
 import { createEmptyDocument, createDocumentFromText } from './types/tiptap';
@@ -13,6 +14,8 @@ import { TopBar, ViewMode } from './components/TopBar';
 import { EditorView } from './components/EditorView';
 import { WorkspaceView } from './components/workspace';
 import { showConfirm } from './hooks/useConfirm';
+
+const { Header, Content } = Layout;
 
 function App() {
   const workspaceManagerRef = useRef<WorkspaceManager>(new WorkspaceManager());
@@ -372,18 +375,30 @@ function App() {
 
   if (viewMode === 'workspace' && workspace) {
     return (
-      <div className="h-screen flex flex-col">
-        <TopBar
-          viewMode="workspace"
-          title={workspace.project.title}
-          isModified={fileState.isModified}
-          saveStatus={fileState.saveStatus}
-          lastSavedTime={fileState.lastSavedTime}
-          onSave={handleSave}
-          onExportMarkdown={handleExportMarkdown}
-          onCloseWorkspace={handleCloseWorkspace}
-        />
-        <div className="flex-1 overflow-hidden">
+      <Layout style={{ height: '100vh', background: '#f5f5f5' }}>
+        <Header
+          style={{
+            height: 56,
+            padding: '0 16px',
+            background: '#fff',
+            lineHeight: '40px',
+            margin: 8,
+            marginBottom: 0,
+            borderRadius: 8,
+          }}
+        >
+          <TopBar
+            viewMode="workspace"
+            title={workspace.project.title}
+            isModified={fileState.isModified}
+            saveStatus={fileState.saveStatus}
+            lastSavedTime={fileState.lastSavedTime}
+            onSave={handleSave}
+            onExportMarkdown={handleExportMarkdown}
+            onCloseWorkspace={handleCloseWorkspace}
+          />
+        </Header>
+        <Content style={{ padding: 8, flex: 1, overflow: 'hidden' }}>
           <WorkspaceView
             workspace={workspace}
             currentChapterId={currentChapterId}
@@ -414,43 +429,57 @@ function App() {
               onSetDraggingBlock={setDraggingBlockId}
             />
           </WorkspaceView>
-        </div>
-      </div>
+        </Content>
+      </Layout>
     );
   }
   return (
-    <div className="h-screen flex flex-col bg-paper-50">
-      <TopBar
-        viewMode="single-file"
-        title={fileServiceRef.current.getFileName()}
-        isModified={fileState.isModified}
-        saveStatus={fileState.saveStatus}
-        lastSavedTime={fileState.lastSavedTime}
-        onNew={handleNew}
-        onOpen={handleOpen}
-        onSave={handleSave}
-        onExportMarkdown={handleExportMarkdown}
-      />
-      <div className="flex-1 overflow-hidden">
-        <EditorView
-          blocks={blocks}
-          layoutRows={layoutRows}
-          editingBlockId={editingBlockId}
-          draggingBlockId={draggingBlockId}
+    <Layout style={{ height: '100vh', background: '#f5f5f5' }}>
+      <Header
+        style={{
+          height: 56,
+          padding: '0 16px',
+          background: '#fff',
+          lineHeight: '40px',
+          margin: 8,
+          marginBottom: 0,
+          borderRadius: 8,
+        }}
+      >
+        <TopBar
+          viewMode="single-file"
           title={fileServiceRef.current.getFileName()}
+          isModified={fileState.isModified}
           saveStatus={fileState.saveStatus}
           lastSavedTime={fileState.lastSavedTime}
-          emptyMessage="没有内容，请打开文件或创建新文档"
-          onUpdateBlock={handleUpdateBlock}
-          onCreateSibling={handleCreateSibling}
-          onColumnResize={handleColumnResize}
-          onToggleEdit={handleToggleEdit}
-          onCreateNewBlock={handleCreateNewBlock}
-          onDragBlock={handleDragBlock}
-          onSetDraggingBlock={setDraggingBlockId}
+          onNew={handleNew}
+          onOpen={handleOpen}
+          onSave={handleSave}
+          onExportMarkdown={handleExportMarkdown}
         />
-      </div>
-    </div>
+      </Header>
+      <Content style={{ padding: 8, flex: 1, overflow: 'hidden' }}>
+        <div style={{ height: '100%', background: '#fff', borderRadius: 8 }}>
+          <EditorView
+            blocks={blocks}
+            layoutRows={layoutRows}
+            editingBlockId={editingBlockId}
+            draggingBlockId={draggingBlockId}
+            title={fileServiceRef.current.getFileName()}
+            saveStatus={fileState.saveStatus}
+            lastSavedTime={fileState.lastSavedTime}
+            emptyMessage="没有内容，请打开文件或创建新文档"
+            onUpdateBlock={handleUpdateBlock}
+            onCreateSibling={handleCreateSibling}
+            onColumnResize={handleColumnResize}
+            onToggleEdit={handleToggleEdit}
+            onCreateNewBlock={handleCreateNewBlock}
+            onDragBlock={handleDragBlock}
+            onSetDraggingBlock={setDraggingBlockId}
+          />
+        </div>
+      </Content>
+    </Layout>
   );
 }
 

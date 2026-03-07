@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import { Button, Space } from 'antd';
+import {
+  PlusOutlined,
+  FontSizeOutlined,
+  MessageOutlined,
+  UnorderedListOutlined,
+  OrderedListOutlined,
+  CheckSquareOutlined,
+  MinusOutlined,
+} from '@ant-design/icons';
 import { Block } from '../types/block';
 import BlockEditor from './BlockEditor';
 
@@ -91,29 +101,29 @@ export const BlockList: React.FC<BlockListProps> = ({
         </div>
       ))}
 
-      <div className="add-block-buttons mt-6 flex flex-wrap gap-2">
-        <button onClick={() => handleAddBlock('paragraph')} className="btn-primary">
-          + 段落
-        </button>
-        <button onClick={() => handleAddBlock('heading')} className="btn-secondary">
-          + 标题
-        </button>
-        <button onClick={() => handleAddBlock('quote')} className="btn-secondary">
-          + 引用
-        </button>
-        <button onClick={() => handleAddBlock('bulletList')} className="btn-secondary">
-          + 无序列表
-        </button>
-        <button onClick={() => handleAddBlock('orderedList')} className="btn-secondary">
-          + 有序列表
-        </button>
-        <button onClick={() => handleAddBlock('taskList')} className="btn-secondary">
-          + 任务列表
-        </button>
-        <button onClick={() => handleAddBlock('horizontalRule')} className="btn-secondary">
-          + 分割线
-        </button>
-      </div>
+      <Space wrap className="mt-6">
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAddBlock('paragraph')}>
+          段落
+        </Button>
+        <Button icon={<FontSizeOutlined />} onClick={() => handleAddBlock('heading')}>
+          标题
+        </Button>
+        <Button icon={<MessageOutlined />} onClick={() => handleAddBlock('quote')}>
+          引用
+        </Button>
+        <Button icon={<UnorderedListOutlined />} onClick={() => handleAddBlock('bulletList')}>
+          无序列表
+        </Button>
+        <Button icon={<OrderedListOutlined />} onClick={() => handleAddBlock('orderedList')}>
+          有序列表
+        </Button>
+        <Button icon={<CheckSquareOutlined />} onClick={() => handleAddBlock('taskList')}>
+          任务列表
+        </Button>
+        <Button icon={<MinusOutlined />} onClick={() => handleAddBlock('horizontalRule')}>
+          分割线
+        </Button>
+      </Space>
     </div>
   );
 };

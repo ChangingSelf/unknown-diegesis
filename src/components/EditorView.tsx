@@ -45,16 +45,16 @@ export const EditorView: React.FC<EditorViewProps> = ({
   const hasContent = layoutRows.length > 0;
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-paper-200">
+    <div className="h-full flex flex-col bg-gray-50">
+      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-100">
         <div className="flex items-center gap-3">
-          {title && <h2 className="text-lg font-semibold text-charcoal-800">{title}</h2>}
+          {title && <h2 className="text-lg font-semibold text-gray-800">{title}</h2>}
         </div>
         <SaveStatusIndicator status={saveStatus} lastSavedTime={lastSavedTime} />
       </div>
 
-      <div className="flex-1 overflow-auto p-8">
-        <div className="bg-white rounded-2xl shadow-paper border border-paper-300 p-8">
+      <div className="flex-1 overflow-auto p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 min-h-full">
           {hasContent ? (
             layoutRows.map(row => (
               <LayoutRowComponent
@@ -73,7 +73,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
               />
             ))
           ) : (
-            <div className="text-center py-16 text-charcoal-400">
+            <div className="text-center py-16 text-gray-400">
               <p className="text-lg">{emptyMessage}</p>
             </div>
           )}

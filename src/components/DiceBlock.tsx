@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
+import { Button, Input, Space, Typography } from 'antd';
 import { Block } from '../types/block';
+
+const { Text } = Typography;
 
 interface DiceBlockProps {
   block: Block;
@@ -133,22 +136,22 @@ export const DiceBlock: React.FC<DiceBlockProps> = ({ block, onUpdate, isEditing
       <div className="flex items-center gap-4">
         <div className="flex-1">
           <label className="block text-sm font-medium text-charcoal-700 mb-1">骰子公式</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
+          <Space.Compact className="w-full">
+            <Input
               value={formula}
               onChange={handleFormulaChange}
               placeholder="1d20"
-              className="flex-1 px-3 py-2 border border-paper-300 rounded-lg focus:outline-none focus:border-gold-400 focus:ring-2 focus:ring-gold-100"
+              className="flex-1"
             />
-            <button
-              onClick={handleRoll}
-              className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-white rounded-lg font-medium transition-colors"
-            >
+            <Button type="primary" onClick={handleRoll}>
               掷骰
-            </button>
-          </div>
-          {error && <div className="mt-2 text-sm text-red-500">{error}</div>}
+            </Button>
+          </Space.Compact>
+          {error && (
+            <Text type="danger" className="mt-2 block">
+              {error}
+            </Text>
+          )}
           <div className="mt-2 text-xs text-charcoal-500">
             格式：NdM+K（如 2d6+3 表示 2 个 6 面骰子加 3）
           </div>
