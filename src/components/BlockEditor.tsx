@@ -152,7 +152,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     if (block.type === 'dice') {
       return (
         <div
-          className={`relative ${isDragging ? 'opacity-50' : ''}`}
+          className={`relative pl-9 ${isDragging ? 'opacity-50' : ''}`}
           draggable={!isEditing}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
@@ -165,7 +165,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
     return (
       <div
-        className={`relative ${isDragging ? 'opacity-50' : ''}`}
+        className={`relative pl-9 ${isDragging ? 'opacity-50' : ''}`}
         draggable={!isEditing}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -178,41 +178,37 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   if (block.type === 'dice') {
     return (
-      <div className="block-editor editing mb-2" onDragOver={handleDragOver} onDrop={handleDrop}>
-        <div className="flex items-start group">
-          <div
-            className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            draggable
-            onDragStart={handleDragStart}
-          >
-            ⋮⋮
-          </div>
-          <div className="flex-1">
-            <DiceBlock block={block} onUpdate={onUpdate} isEditing />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="block-editor editing mb-2" onDragOver={handleDragOver} onDrop={handleDrop}>
-      <div className="flex items-start group">
+      <div
+        className="block-editor editing mb-2 relative pl-9"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         <div
-          className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="drag-handle absolute left-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity"
           draggable
           onDragStart={handleDragStart}
         >
           ⋮⋮
         </div>
-        <div className="flex-1">
-          <EditorContent
-            editor={editor}
-            onBlur={handleBlur}
-            className="tiptap-content cursor-text"
-          />
-        </div>
+        <DiceBlock block={block} onUpdate={onUpdate} isEditing />
       </div>
+    );
+  }
+
+  return (
+    <div
+      className="block-editor editing mb-2 relative pl-9"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      <div
+        className="drag-handle absolute left-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        draggable
+        onDragStart={handleDragStart}
+      >
+        ⋮⋮
+      </div>
+      <EditorContent editor={editor} onBlur={handleBlur} className="tiptap-content cursor-text" />
     </div>
   );
 };

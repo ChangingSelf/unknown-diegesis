@@ -337,6 +337,8 @@ function App() {
     if (!workspace) return;
 
     const title = await showPrompt({ title: '新建章节', placeholder: '请输入章节标题' });
+    if (title === null) return;
+
     const newChapter = await chapterServiceRef.current.createChapter(
       workspace.path,
       title || undefined

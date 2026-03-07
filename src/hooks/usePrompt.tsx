@@ -26,13 +26,13 @@ export const usePrompt = () => {
             }}
             onPressEnter={() => {
               modal.destroy();
-              resolve(inputValue || null);
+              resolve(inputValue);
             }}
           />
         ),
         okText: options.okText || '确定',
         cancelText: options.cancelText || '取消',
-        onOk: () => resolve(inputValue || null),
+        onOk: () => resolve(inputValue),
         onCancel: () => resolve(null),
       });
     });
@@ -58,13 +58,13 @@ export const showPrompt = (options: PromptOptions): Promise<string | null> => {
           }}
           onPressEnter={() => {
             modal.destroy();
-            resolve(inputValue || null);
+            resolve(inputValue);
           }}
         />
       ),
       okText: options.okText || '确定',
       cancelText: options.cancelText || '取消',
-      onOk: () => resolve(inputValue || null),
+      onOk: () => resolve(inputValue),
       onCancel: () => resolve(null),
     });
   });
