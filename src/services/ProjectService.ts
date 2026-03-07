@@ -33,38 +33,19 @@ export class ProjectService {
   async loadProject(workspacePath: string): Promise<Project> {
     const projectPath = this.getProjectPath(workspacePath);
     try {
-      // 尝试通过 IPC 读取文件内容（若 IPC 暴露了读取方法）
       const electronApi = typeof window !== 'undefined' ? window.electronAPI : null;
-      const readFile: ((path: string) => Promise<string | null>) | undefined = (
-        electronApi as Record<string, unknown>
-      )?.readFile as ((path: string) => Promise<string | null>) | undefined;
-      if (typeof readFile === 'function') {
-        const content = await readFile(projectPath);
-        if (typeof content === 'string') {
-          const parsed = JSON.parse(content) as Partial<Project>;
+
+      if (electronApi?.workspaceReadFile) {
+        const result = await electronApi.workspaceReadFile(projectPath);
+        if (result?.success && result.content) {
+          const parsed = JSON.parse(result.content) as Partial<Project>;
           return {
             ...this.createDefaultProject('未命名项目'),
             ...parsed,
           } as Project;
         }
       }
-      // 回退：尝试打开文件并解析返回内容
-      const openFn: (() => Promise<string | object | null>) | undefined = electronApi?.fileOpen as
-        | (() => Promise<string | object | null>)
-        | undefined;
-      if (typeof openFn === 'function') {
-        const result = await openFn();
-        if (typeof result === 'string') {
-          const parsed = JSON.parse(result) as Partial<Project>;
-          return { ...this.createDefaultProject('未命名项目'), ...parsed } as Project;
-        } else if (result && typeof result === 'object') {
-          return {
-            ...this.createDefaultProject('未命名项目'),
-            ...(result as Record<string, unknown>),
-          } as Project;
-        }
-      }
-      // 最终兜底
+
       return this.createDefaultProject('未命名项目');
     } catch (error) {
       console.error('Failed to load project:', error);
