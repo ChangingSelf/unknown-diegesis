@@ -281,7 +281,7 @@ function registerFileHandlers() {
     }
   });
 
-  // Prompt 输入对话框 - 选择文件夹并返回完整路径
+  // Prompt 对话框 - 选择文件夹
   ipcMain.handle(
     'prompt',
     async (
@@ -299,7 +299,6 @@ function registerFileHandlers() {
           return null;
         }
 
-        // 返回完整路径
         return result.filePaths[0];
       } catch (error) {
         console.error('Error in prompt:', error);

@@ -14,6 +14,7 @@ import { TopBar, ViewMode } from './components/TopBar';
 import { EditorView } from './components/EditorView';
 import { WorkspaceView } from './components/workspace';
 import { showConfirm } from './hooks/useConfirm';
+import { showPrompt } from './hooks/usePrompt';
 
 const { Header, Content } = Layout;
 
@@ -323,13 +324,7 @@ function App() {
   const handleChapterCreate = async () => {
     if (!workspace) return;
 
-    const api = window.electronAPI;
-    if (!api?.prompt) {
-      console.error('prompt API not available');
-      return;
-    }
-
-    const title = await api.prompt('请输入章节标题：');
+    const title = await showPrompt({ title: '新建章节', placeholder: '请输入章节标题' });
     const newChapter = await chapterServiceRef.current.createChapter(
       workspace.path,
       title || undefined
