@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { CloudUploadOutlined, FileImageOutlined, FileTextOutlined } from '@ant-design/icons';
 import { AssetMeta } from '../../services/AssetService';
 
 interface AssetBrowserProps {
@@ -117,19 +118,7 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
           onDrop={handleDrop}
         >
           <div className="flex flex-col items-center gap-2">
-            <svg
-              className="w-12 h-12 text-charcoal-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
+            <CloudUploadOutlined className="text-5xl text-charcoal-400" />
             <p className="text-charcoal-600">
               拖拽文件到此处，或{' '}
               <button
@@ -154,14 +143,7 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
       <div className="flex-1 overflow-auto p-4">
         {filteredAssets.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-charcoal-400">
-            <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
+            <FileImageOutlined className="text-5xl mb-4" />
             <p className="text-lg">暂无资源</p>
             <p className="text-sm mt-1">拖拽文件或点击上方按钮导入资源</p>
           </div>
@@ -223,19 +205,7 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
                         className="flex-1 flex items-center gap-3 cursor-pointer"
                         onClick={() => onInsert(asset.path)}
                       >
-                        <svg
-                          className="w-8 h-8 text-charcoal-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
+                        <FileTextOutlined className="text-3xl text-charcoal-500" />
                         <div className="flex-1">
                           <div className="font-medium text-charcoal-800 truncate">{asset.name}</div>
                           <div className="text-sm text-charcoal-500">

@@ -1,4 +1,5 @@
 import React from 'react';
+import { LoadingOutlined, CheckOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { SaveStatus } from '../types/block';
 
 interface SaveStatusIndicatorProps {
@@ -15,22 +16,7 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
       case 'saving':
         return (
           <span className="flex items-center gap-2 text-ink-600 font-medium">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+            <LoadingOutlined spin className="text-base" />
             保存中...
           </span>
         );
@@ -38,14 +24,7 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
       case 'saved':
         return (
           <span className="flex items-center gap-2 text-success-600 font-medium">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+            <CheckOutlined className="text-base" />
             <span>所有更改已保存</span>
             {lastSavedTime && (
               <span className="text-charcoal-400 text-sm ml-1">{formatTime(lastSavedTime)}</span>
@@ -56,14 +35,7 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
       case 'error':
         return (
           <span className="flex items-center gap-2 text-danger-600 font-medium">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <CloseCircleOutlined className="text-base" />
             保存失败
           </span>
         );
@@ -71,9 +43,7 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
       case 'modified':
         return (
           <span className="flex items-center gap-2 text-warning-600 font-medium">
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="6" />
-            </svg>
+            <span className="w-2 h-2 bg-warning-500 rounded-full"></span>
             未保存
           </span>
         );

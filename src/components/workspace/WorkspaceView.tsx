@@ -1,4 +1,10 @@
 import React, { useState } from 'react';
+import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  FileTextOutlined,
+  AppstoreOutlined,
+} from '@ant-design/icons';
 import { Workspace } from '@/types/workspace';
 import { ChapterList } from './ChapterList';
 import { MaterialPanel } from './MaterialPanel';
@@ -16,44 +22,6 @@ interface WorkspaceViewProps {
   onMaterialCreate: (type: string) => void;
   onMaterialDelete: (materialId: string) => void;
 }
-
-const SidebarIcon = ({ collapsed }: { collapsed: boolean }) => (
-  <svg
-    className={`w-4 h-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-    />
-  </svg>
-);
-
-const ChapterIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-    />
-  </svg>
-);
-
-const MaterialIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-    />
-  </svg>
-);
 
 export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   workspace,
@@ -95,7 +63,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             className="p-1.5 hover:bg-paper-100 rounded-md text-charcoal-500 hover:text-charcoal-700 transition-colors"
             title={isSidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
           >
-            <SidebarIcon collapsed={isSidebarCollapsed} />
+            {isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           </button>
         </div>
 
@@ -111,7 +79,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 }`}
                 onClick={() => setActiveTab('chapters')}
               >
-                <ChapterIcon />
+                <FileTextOutlined />
                 <span>章节</span>
               </button>
               <button
@@ -122,7 +90,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 }`}
                 onClick={() => setActiveTab('materials')}
               >
-                <MaterialIcon />
+                <AppstoreOutlined />
                 <span>素材</span>
               </button>
             </div>

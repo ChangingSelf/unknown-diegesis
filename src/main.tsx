@@ -9,6 +9,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ConfigProvider
       locale={zhCN}
+      componentSize="small"
       theme={{
         token: {
           colorPrimary: '#1677ff',
