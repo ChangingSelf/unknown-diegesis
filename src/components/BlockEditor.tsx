@@ -151,27 +151,29 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   if (!isEditing) {
     if (block.type === 'dice') {
       return (
-        <div
-          className={`relative pl-9 ${isDragging ? 'opacity-50' : ''}`}
-          draggable={!isEditing}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <DiceBlock block={block} onUpdate={onUpdate} isEditing={false} />
+        <div className="block-editor mb-2 group" onDragOver={handleDragOver} onDrop={handleDrop}>
+          <div className="flex items-start">
+            <div className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              ⋮⋮
+            </div>
+            <div className="flex-1">
+              <DiceBlock block={block} onUpdate={onUpdate} isEditing={false} />
+            </div>
+          </div>
         </div>
       );
     }
 
     return (
-      <div
-        className={`relative pl-9 ${isDragging ? 'opacity-50' : ''}`}
-        draggable={!isEditing}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-      >
-        <MarkdownRenderer block={block} onEdit={handleBlockClick} />
+      <div className="block-editor mb-2 group" onDragOver={handleDragOver} onDrop={handleDrop}>
+        <div className="flex items-start">
+          <div className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            ⋮⋮
+          </div>
+          <div className="flex-1">
+            <MarkdownRenderer block={block} onEdit={handleBlockClick} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -179,36 +181,48 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   if (block.type === 'dice') {
     return (
       <div
-        className="block-editor editing mb-2 relative pl-9"
+        className="block-editor editing mb-2 group"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <div
-          className="drag-handle absolute left-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity"
-          draggable
-          onDragStart={handleDragStart}
-        >
-          ⋮⋮
+        <div className="flex items-start">
+          <div
+            className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            draggable
+            onDragStart={handleDragStart}
+          >
+            ⋮⋮
+          </div>
+          <div className="flex-1">
+            <DiceBlock block={block} onUpdate={onUpdate} isEditing />
+          </div>
         </div>
-        <DiceBlock block={block} onUpdate={onUpdate} isEditing />
       </div>
     );
   }
 
   return (
     <div
-      className="block-editor editing mb-2 relative pl-9"
+      className="block-editor editing mb-2 group"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <div
-        className="drag-handle absolute left-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        draggable
-        onDragStart={handleDragStart}
-      >
-        ⋮⋮
+      <div className="flex items-start">
+        <div
+          className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          draggable
+          onDragStart={handleDragStart}
+        >
+          ⋮⋮
+        </div>
+        <div className="flex-1">
+          <EditorContent
+            editor={editor}
+            onBlur={handleBlur}
+            className="tiptap-content cursor-text"
+          />
+        </div>
       </div>
-      <EditorContent editor={editor} onBlur={handleBlur} className="tiptap-content cursor-text" />
     </div>
   );
 };
