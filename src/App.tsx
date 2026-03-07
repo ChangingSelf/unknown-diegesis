@@ -7,6 +7,7 @@ import { WorkspaceManager } from './services/WorkspaceManager';
 import { ChapterService, ChapterData } from './services/ChapterService';
 import { AutoSaveManager } from './services/AutoSaveManager';
 import { FileService } from './services/FileService';
+import { RecentWorkspacesService } from './services/RecentWorkspacesService';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { TopBar, ViewMode } from './components/TopBar';
 import { EditorView } from './components/EditorView';
@@ -19,6 +20,7 @@ function App() {
   const autoSaveManagerRef = useRef<AutoSaveManager>(new AutoSaveManager());
   const fileServiceRef = useRef<FileService>(new FileService());
   const blockManagerRef = useRef<BlockManager>(new BlockManager());
+  const recentWorkspacesServiceRef = useRef<RecentWorkspacesService>(new RecentWorkspacesService());
 
   const [viewMode, setViewMode] = useState<ViewMode>('welcome');
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -30,6 +32,9 @@ function App() {
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
   const [isAltKeyPressed, setIsAltKeyPressed] = useState(false);
   const [fileState, setFileState] = useState(fileServiceRef.current.getState());
+  const [recentWorkspaces, setRecentWorkspaces] = useState(
+    recentWorkspacesServiceRef.current.getRecentWorkspaces()
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -48,6 +53,11 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = fileServiceRef.current.subscribe(setFileState);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = recentWorkspacesServiceRef.current.subscribe(setRecentWorkspaces);
     return unsubscribe;
   }, []);
 
@@ -215,6 +225,7 @@ function App() {
   const handleOpenWorkspace = async () => {
     const ws = await workspaceManagerRef.current.openWorkspace();
     if (ws) {
+      recentWorkspacesServiceRef.current.addWorkspace(ws.path, ws.name);
       setWorkspace(ws);
       setViewMode('workspace');
       setCurrentChapterId(null);
@@ -237,9 +248,27 @@ function App() {
     const name = selectedPath.split(/[/\\]/).pop() || '我的小说';
     const ws = await workspaceManagerRef.current.createWorkspace(name, selectedPath);
     if (ws) {
+      recentWorkspacesServiceRef.current.addWorkspace(ws.path, ws.name);
       setWorkspace(ws);
       setViewMode('workspace');
     }
+  };
+
+  const handleOpenRecentWorkspace = async (path: string) => {
+    const ws = await workspaceManagerRef.current.openWorkspaceFromPath(path);
+    if (ws) {
+      recentWorkspacesServiceRef.current.addWorkspace(ws.path, ws.name);
+      setWorkspace(ws);
+      setViewMode('workspace');
+      setCurrentChapterId(null);
+      setCurrentChapterData(null);
+      setBlocks([]);
+      setLayoutRows([]);
+    }
+  };
+
+  const handleRemoveRecentWorkspace = (path: string) => {
+    recentWorkspacesServiceRef.current.removeWorkspace(path);
   };
 
   const handleCloseWorkspace = () => {
@@ -334,6 +363,9 @@ function App() {
         onOpenWorkspace={handleOpenWorkspace}
         onNewDocument={handleNew}
         onOpenDocument={handleOpen}
+        recentWorkspaces={recentWorkspaces}
+        onOpenRecentWorkspace={handleOpenRecentWorkspace}
+        onRemoveRecentWorkspace={handleRemoveRecentWorkspace}
       />
     );
   }
