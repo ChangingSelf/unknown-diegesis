@@ -297,9 +297,26 @@ function App() {
     if (data) {
       setCurrentChapterId(chapterId);
       setCurrentChapterData(data);
-      blockManagerRef.current = new BlockManager(data.blocks, data.layoutRows);
-      setBlocks(data.blocks);
-      setLayoutRows(data.layoutRows);
+
+      if (data.blocks.length === 0) {
+        const newBlock = blockManagerRef.current.addBlock('paragraph', createEmptyDocument());
+        blockManagerRef.current.addLayoutRow();
+        const rows = blockManagerRef.current.getLayoutRows();
+        const row = rows[rows.length - 1];
+        const column = row.columns[0];
+        column.blockIds.push(newBlock.id);
+        newBlock.layoutRowId = row.id;
+        newBlock.layoutColumnId = column.id;
+
+        setBlocks([...blockManagerRef.current.getBlocks()]);
+        setLayoutRows([...blockManagerRef.current.getLayoutRows()]);
+        setEditingBlockId(newBlock.id);
+      } else {
+        blockManagerRef.current = new BlockManager(data.blocks, data.layoutRows);
+        setBlocks(data.blocks);
+        setLayoutRows(data.layoutRows);
+        setEditingBlockId(null);
+      }
     }
   };
 

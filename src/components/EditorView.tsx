@@ -44,6 +44,12 @@ export const EditorView: React.FC<EditorViewProps> = ({
 }) => {
   const hasContent = layoutRows.length > 0;
 
+  const handleEmptyAreaClick = () => {
+    if (blocks.length === 1 && editingBlockId !== blocks[0].id) {
+      onToggleEdit(blocks[0].id);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-100">
@@ -54,7 +60,10 @@ export const EditorView: React.FC<EditorViewProps> = ({
       </div>
 
       <div className="flex-1 overflow-auto p-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 min-h-full">
+        <div
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 min-h-full cursor-text"
+          onClick={handleEmptyAreaClick}
+        >
           {hasContent ? (
             layoutRows.map(row => (
               <LayoutRowComponent
