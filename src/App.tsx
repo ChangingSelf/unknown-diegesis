@@ -66,6 +66,13 @@ function App() {
       meta: currentDocumentData.meta,
       content: documentContent,
     });
+
+    if (success) {
+      await workspaceManagerRef.current.refreshWorkspace();
+      const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
+      if (updatedWorkspace) setWorkspace(updatedWorkspace);
+    }
+
     return success;
   }, [workspace, currentChapterId, currentDocumentData, documentContent]);
 

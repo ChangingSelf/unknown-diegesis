@@ -54,8 +54,8 @@ export class WorkspaceManager {
         return { workspace: null, error: '无法加载工作区配置' };
       }
 
-      const project = this.convertConfigToProject(config);
       const { chapters, materials } = await this.scanWorkspace(path);
+      const project = this.convertConfigToProject(config, chapters);
 
       this.workspace = {
         path,
@@ -74,10 +74,11 @@ export class WorkspaceManager {
   }
 
   /**
-   * 将 WorkspaceConfig 转换为 Project 格式
-   * 保持与现有代码的兼容性
+   * 将 WorkspaceConfig 转换为 Project 格式，统计数据从章节列表动态计算
    */
-  private convertConfigToProject(config: WorkspaceConfig): Project {
+  private convertConfigToProject(config: WorkspaceConfig, chapters: DocumentMeta[]): Project {
+    const totalWordCount = chapters.reduce((sum, ch) => sum + (ch.wordCount || 0), 0);
+
     return {
       schemaVersion: config.schemaVersion ?? 1,
       title: config.title,
@@ -87,8 +88,8 @@ export class WorkspaceManager {
       created: config.created,
       modified: config.modified,
       statistics: {
-        wordCount: config.wordCount || 0,
-        chapterCount: config.chapterCount || 0,
+        wordCount: totalWordCount,
+        chapterCount: chapters.length,
         characterCount: 0,
       },
       settings: config.settings || {
@@ -140,17 +141,25 @@ export class WorkspaceManager {
     this.listeners.forEach(listener => listener(this.workspace));
   }
 
-  /**
-   * 刷新工作区（重新扫描文件）
-   */
+  /** 刷新工作区（重新扫描文件） */
   async refreshWorkspace(): Promise<void> {
     if (!this.workspace) return;
 
     const { chapters, materials } = await this.scanWorkspace(this.workspace.path);
+    const totalWordCount = chapters.reduce((sum, ch) => sum + (ch.wordCount || 0), 0);
+
     this.workspace = {
       ...this.workspace,
       chapters,
       materials,
+      project: {
+        ...this.workspace.project,
+        statistics: {
+          ...this.workspace.project.statistics,
+          wordCount: totalWordCount,
+          chapterCount: chapters.length,
+        },
+      },
     };
 
     this.notify();
