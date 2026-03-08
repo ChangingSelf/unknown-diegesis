@@ -205,7 +205,9 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
 
         let blockWrapperDepth = -1;
         for (let d = $from.depth; d > 0; d--) {
-          console.log(`[Backspace] depth ${d}: ${$from.node(d)?.type.name}`);
+          console.log(
+            `[Backspace] depth ${d}: ${$from.node(d)?.type.name}, index: ${$from.index(d)}`
+          );
           if ($from.node(d).type.name === this.name) {
             blockWrapperDepth = d;
             break;
@@ -217,24 +219,31 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
           return false;
         }
 
-        const blockWrapperPos = $from.before(blockWrapperDepth);
-        console.log('[Backspace] blockWrapperPos:', blockWrapperPos);
-        if (blockWrapperPos <= 0) {
+        const blockWrapperIndex = $from.index(blockWrapperDepth);
+        console.log('[Backspace] blockWrapperIndex:', blockWrapperIndex);
+        if (blockWrapperIndex === 0) {
           console.log('[Backspace] first block');
           return false;
         }
 
-        const $before = state.doc.resolve(blockWrapperPos - 1);
-        const nodeBefore = $before.nodeBefore;
-        console.log('[Backspace] nodeBefore:', nodeBefore?.type.name);
-        if (!nodeBefore || nodeBefore.type.name !== this.name) {
-          console.log('[Backspace] no previous blockWrapper');
-          return false;
+        const blockWrapperPos = $from.before(blockWrapperDepth);
+        const blockWrapperNode = $from.node(blockWrapperDepth);
+        const parentNode = $from.node(blockWrapperDepth - 1);
+        const prevBlockWrapperIndex = blockWrapperIndex - 1;
+
+        let prevBlockWrapperPos = 1;
+        for (let i = 0; i < prevBlockWrapperIndex; i++) {
+          prevBlockWrapperPos += parentNode.child(i).nodeSize;
         }
 
-        const blockWrapperNode = $from.node(blockWrapperDepth);
-        const prevBlockEnd = blockWrapperPos - 1;
+        console.log('[Backspace] prevBlockWrapperPos:', prevBlockWrapperPos);
+
         const tr = state.tr.delete(blockWrapperPos, blockWrapperPos + blockWrapperNode.nodeSize);
+        const prevBlockEnd =
+          prevBlockWrapperPos +
+          parentNode.child(prevBlockWrapperIndex).nodeSize -
+          1 -
+          blockWrapperNode.nodeSize;
         tr.setSelection(TextSelection.create(tr.doc, prevBlockEnd));
         dispatch(tr);
 
