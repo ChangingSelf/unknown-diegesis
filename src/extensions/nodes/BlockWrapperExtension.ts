@@ -173,6 +173,74 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
 
         return true;
       },
+
+      Backspace: () => {
+        const { editor } = this;
+        const { state, dispatch } = editor.view;
+        const { $from } = state.selection;
+
+        console.log('[Backspace] triggered', {
+          selectionEmpty: state.selection.empty,
+          parentOffset: $from.parentOffset,
+          parentType: $from.parent.type.name,
+          parentSize: $from.parent.content.size,
+          depth: $from.depth,
+        });
+
+        if (!state.selection.empty) {
+          console.log('[Backspace] not empty selection');
+          return false;
+        }
+
+        if ($from.parentOffset > 0) {
+          console.log('[Backspace] not at start');
+          return false;
+        }
+
+        const parent = $from.parent;
+        if (parent.content.size > 0) {
+          console.log('[Backspace] parent not empty');
+          return false;
+        }
+
+        let blockWrapperDepth = -1;
+        for (let d = $from.depth; d > 0; d--) {
+          console.log(`[Backspace] depth ${d}: ${$from.node(d)?.type.name}`);
+          if ($from.node(d).type.name === this.name) {
+            blockWrapperDepth = d;
+            break;
+          }
+        }
+
+        if (blockWrapperDepth === -1) {
+          console.log('[Backspace] no blockWrapper found');
+          return false;
+        }
+
+        const blockWrapperPos = $from.before(blockWrapperDepth);
+        console.log('[Backspace] blockWrapperPos:', blockWrapperPos);
+        if (blockWrapperPos <= 0) {
+          console.log('[Backspace] first block');
+          return false;
+        }
+
+        const $before = state.doc.resolve(blockWrapperPos - 1);
+        const nodeBefore = $before.nodeBefore;
+        console.log('[Backspace] nodeBefore:', nodeBefore?.type.name);
+        if (!nodeBefore || nodeBefore.type.name !== this.name) {
+          console.log('[Backspace] no previous blockWrapper');
+          return false;
+        }
+
+        const blockWrapperNode = $from.node(blockWrapperDepth);
+        const prevBlockEnd = blockWrapperPos - 1;
+        const tr = state.tr.delete(blockWrapperPos, blockWrapperPos + blockWrapperNode.nodeSize);
+        tr.setSelection(TextSelection.create(tr.doc, prevBlockEnd));
+        dispatch(tr);
+
+        console.log('[Backspace] deleted block');
+        return true;
+      },
     };
   },
 
