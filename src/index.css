@@ -598,6 +598,61 @@ body {
    ANT DESIGN OVERRIDES
    ======================================== */
 
+/* Tabs 样式 - 增强选中/未选中状态区分度 */
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab,
+.ant-tabs-editable-card > .ant-tabs-nav .ant-tabs-tab {
+  background-color: #e5e7eb !important;
+  border-color: #d1d5db !important;
+  color: #9ca3af !important;
+  transition: all 200ms ease !important;
+  box-shadow: none !important;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab:hover,
+.ant-tabs-editable-card > .ant-tabs-nav .ant-tabs-tab:hover {
+  background-color: #d1d5db !important;
+  color: #4b5563 !important;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active,
+.ant-tabs-editable-card > .ant-tabs-nav .ant-tabs-tab-active {
+  background-color: #ffffff !important;
+  border-color: #14b8a6 !important;
+  border-bottom-color: #ffffff !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 -2px 8px rgba(20, 184, 166, 0.15) !important;
+  position: relative;
+  z-index: 1;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active::after,
+.ant-tabs-editable-card > .ant-tabs-nav .ant-tabs-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #14b8a6, #0d9488);
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn,
+.ant-tabs-editable-card > .ant-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #0f766e !important;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab .ant-tabs-tab-btn,
+.ant-tabs-editable-card > .ant-tabs-nav .ant-tabs-tab .ant-tabs-tab-btn {
+  color: #9ca3af !important;
+  transition: color 200ms ease !important;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab:hover .ant-tabs-tab-btn,
+.ant-tabs-editable-card > .ant-tabs-nav .ant-tabs-tab:hover .ant-tabs-tab-btn {
+  color: #4b5563 !important;
+}
+
 .ant-tag .anticon {
   font-size: 12px !important;
 }

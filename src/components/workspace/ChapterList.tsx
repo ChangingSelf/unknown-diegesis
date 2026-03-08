@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Button, List, Typography, Popconfirm, Tag, Tooltip, Input } from 'antd';
+import { Button, List, Typography, Popconfirm, Tag, Tooltip, Input, Dropdown } from 'antd';
 import type { InputRef } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -41,7 +42,48 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [contextMenuChapter, setContextMenuChapter] = useState<DocumentMeta | null>(null);
   const inputRef = useRef<InputRef>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, chapter: DocumentMeta) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenuChapter(chapter);
+  };
+
+  const contextMenuItems: MenuProps['items'] = contextMenuChapter
+    ? [
+        {
+          key: 'delete',
+          label: (
+            <Popconfirm
+              title="确定删除此章节？"
+              description="删除后无法恢复"
+              onConfirm={e => {
+                e?.stopPropagation();
+                onDelete(contextMenuChapter.id);
+                setContextMenuChapter(null);
+              }}
+              onCancel={e => {
+                e?.stopPropagation();
+                setContextMenuChapter(null);
+              }}
+              okText="删除"
+              okButtonProps={{ danger: true }}
+              cancelText="取消"
+            >
+              <span
+                className="text-red-500 flex items-center gap-2"
+                onClick={e => e.stopPropagation()}
+              >
+                <DeleteOutlined />
+                删除章节
+              </span>
+            </Popconfirm>
+          ),
+        },
+      ]
+    : [];
 
   const handleDragStart = (e: React.DragEvent, chapterId: string) => {
     setDraggedId(chapterId);
@@ -137,84 +179,96 @@ export const ChapterList: React.FC<ChapterListProps> = ({
               const isDragOver = dragOverId === chapter.id;
 
               return (
-                <List.Item
-                  draggable
-                  onDragStart={e => handleDragStart(e, chapter.id)}
-                  onDragOver={e => handleDragOver(e, chapter.id)}
-                  onDragEnd={handleDragEnd}
-                  onDrop={e => handleDrop(e, chapter.id)}
-                  onClick={() => {
-                    if (editingId !== chapter.id) {
-                      onSelect(chapter.id);
+                <Dropdown
+                  key={chapter.id}
+                  menu={{ items: contextMenuItems }}
+                  trigger={['contextMenu']}
+                  onOpenChange={open => {
+                    if (open) {
+                      setContextMenuChapter(chapter);
                     }
                   }}
-                  className={`
-                    cursor-pointer transition-all duration-200 !px-3 !py-2
-                    ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}
-                    ${isDragOver ? 'border-t-2 border-t-blue-400 bg-blue-50/50' : ''}
-                  `}
-                  actions={[
-                    <Tooltip key="delete" title="删除章节">
-                      <Popconfirm
-                        title="确定删除此章节？"
-                        description="删除后无法恢复"
-                        onConfirm={e => {
-                          e?.stopPropagation();
-                          onDelete(chapter.id);
-                        }}
-                        onCancel={e => e?.stopPropagation()}
-                        okText="删除"
-                        okButtonProps={{ danger: true }}
-                        cancelText="取消"
-                      >
-                        <Button
-                          type="text"
-                          danger
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={e => e.stopPropagation()}
-                          className="opacity-0 group-hover:opacity-100"
-                        />
-                      </Popconfirm>
-                    </Tooltip>,
-                  ]}
                 >
-                  <div className="flex items-center gap-2 w-full group">
-                    <HolderOutlined className="text-gray-300 cursor-grab" />
-                    <Text type="secondary" className="w-6 text-xs font-mono">
-                      {String(chapter.number).padStart(2, '0')}
-                    </Text>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {editingId === chapter.id ? (
-                          <Input
-                            ref={inputRef}
-                            value={editingTitle}
-                            onChange={e => setEditingTitle(e.target.value)}
-                            onBlur={() => handleEditBlur(chapter.id)}
-                            onKeyDown={e => handleEditKeyDown(e, chapter.id)}
-                            onClick={e => e.stopPropagation()}
+                  <List.Item
+                    draggable
+                    onDragStart={e => handleDragStart(e, chapter.id)}
+                    onDragOver={e => handleDragOver(e, chapter.id)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={e => handleDrop(e, chapter.id)}
+                    onContextMenu={e => handleContextMenu(e, chapter)}
+                    onClick={() => {
+                      if (editingId !== chapter.id) {
+                        onSelect(chapter.id);
+                      }
+                    }}
+                    className={`
+                      cursor-pointer transition-all duration-200 !px-3 !py-2
+                      ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}
+                      ${isDragOver ? 'border-t-2 border-t-blue-400 bg-blue-50/50' : ''}
+                    `}
+                    actions={[
+                      <Tooltip key="delete" title="删除章节">
+                        <Popconfirm
+                          title="确定删除此章节？"
+                          description="删除后无法恢复"
+                          onConfirm={e => {
+                            e?.stopPropagation();
+                            onDelete(chapter.id);
+                          }}
+                          onCancel={e => e?.stopPropagation()}
+                          okText="删除"
+                          okButtonProps={{ danger: true }}
+                          cancelText="取消"
+                        >
+                          <Button
+                            type="text"
+                            danger
                             size="small"
-                            className="flex-1"
-                            autoFocus
+                            icon={<DeleteOutlined />}
+                            onClick={e => e.stopPropagation()}
+                            className="opacity-0 group-hover:opacity-100"
                           />
-                        ) : (
-                          <Text
-                            strong={isSelected}
-                            className={`truncate cursor-text ${isSelected ? '!text-blue-600' : '!text-gray-800'}`}
-                            onClick={e => handleStartEdit(e, chapter)}
-                          >
-                            {chapter.title}
-                          </Text>
-                        )}
-                        {getStatusTag(chapter.status ?? 'draft')}
-                      </div>
-                      <Text type="secondary" className="text-xs">
-                        {chapter.wordCount.toLocaleString()} 字
+                        </Popconfirm>
+                      </Tooltip>,
+                    ]}
+                  >
+                    <div className="flex items-center gap-2 w-full group">
+                      <HolderOutlined className="text-gray-300 cursor-grab" />
+                      <Text type="secondary" className="w-6 text-xs font-mono">
+                        {String(chapter.number).padStart(2, '0')}
                       </Text>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {editingId === chapter.id ? (
+                            <Input
+                              ref={inputRef}
+                              value={editingTitle}
+                              onChange={e => setEditingTitle(e.target.value)}
+                              onBlur={() => handleEditBlur(chapter.id)}
+                              onKeyDown={e => handleEditKeyDown(e, chapter.id)}
+                              onClick={e => e.stopPropagation()}
+                              size="small"
+                              className="flex-1"
+                              autoFocus
+                            />
+                          ) : (
+                            <Text
+                              strong={isSelected}
+                              className={`truncate cursor-text ${isSelected ? '!text-blue-600' : '!text-gray-800'}`}
+                              onClick={e => handleStartEdit(e, chapter)}
+                            >
+                              {chapter.title}
+                            </Text>
+                          )}
+                          {getStatusTag(chapter.status ?? 'draft')}
+                        </div>
+                        <Text type="secondary" className="text-xs">
+                          {chapter.wordCount.toLocaleString()} 字
+                        </Text>
+                      </div>
                     </div>
-                  </div>
-                </List.Item>
+                  </List.Item>
+                </Dropdown>
               );
             }}
           />
