@@ -1,14 +1,12 @@
+import { countWords } from '@/utils/wordCount';
+
 export interface WordCountResult {
   total: number;
   selected: number;
 }
 
 export function useWordCount(text: string): number {
-  const chineseChars = text.match(/[\u4e00-\u9fa5]/g) || [];
-  const englishWords = text.match(/[a-zA-Z]+/g) || [];
-  const numbers = text.match(/\d+/g) || [];
-
-  return chineseChars.length + englishWords.length + numbers.length;
+  return countWords(text);
 }
 
 export function useWordCountWithSelection(

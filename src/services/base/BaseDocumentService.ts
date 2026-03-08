@@ -2,6 +2,7 @@ import { DocumentMeta, DocumentData } from '@/types/document';
 import { TiptapDocument, createEmptyDocument } from '@/types/tiptap';
 import { IndexManager } from '@/utils/IndexManager';
 import { generateDocumentFileName } from '@/utils/FileNaming';
+import { countDocumentWords } from '@/utils/wordCount';
 
 export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentMeta> {
   protected indexManager: IndexManager;
@@ -133,12 +134,15 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
         autoAssignedNumber = maxExistingNumber + 1;
       }
 
+      const docContent = data.content || createEmptyDocument();
+      const wordCount = countDocumentWords(docContent);
+
       const meta: TMeta = {
         ...data,
         id,
         category: isStory ? 'story' : 'material',
         order: data.order ?? 0,
-        wordCount: data.wordCount ?? 0,
+        wordCount,
         number: autoAssignedNumber,
         created: now,
         modified: now,
@@ -154,7 +158,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
                 | 'story'
                 | import('@/types/document').MaterialType),
         meta,
-        content: data.content || createEmptyDocument(),
+        content: docContent,
       };
 
       const content = JSON.stringify(documentData, null, 2);
@@ -191,6 +195,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
 
     try {
       const filePath = `${workspacePath}/${data.meta.path}`;
+      const wordCount = countDocumentWords(data.content);
 
       const documentData: DocumentData<TMeta> = {
         schemaVersion: 1,
@@ -202,6 +207,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
                 | import('@/types/document').MaterialType),
         meta: {
           ...data.meta,
+          wordCount,
           modified: new Date().toISOString(),
         },
         content: data.content,

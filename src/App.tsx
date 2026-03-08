@@ -77,6 +77,12 @@ function App() {
       } else if (viewMode === 'single-file' && fileState.currentFilePath) {
         const markdown = exportMarkdownFromTiptap(documentContent);
         const result = await fileServiceRef.current.saveFile(markdown);
+        if (result.success) {
+          const activeTab = tabManagerRef.current.getActiveTab();
+          if (activeTab && activeTab.isModified) {
+            tabManagerRef.current.updateTabModified(activeTab.id, false);
+          }
+        }
         return result.success;
       }
       return false;
@@ -97,9 +103,42 @@ function App() {
     }
   };
 
-  const handleSave = async () => {
-    await autoSaveManagerRef.current.saveNow();
-  };
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (viewMode === 'workspace') {
+      const success = await saveCurrentChapter();
+      if (success) {
+        const activeTab = tabManagerRef.current.getActiveTab();
+        if (activeTab && activeTab.isModified) {
+          tabManagerRef.current.updateTabModified(activeTab.id, false);
+        }
+      }
+      return success;
+    } else if (viewMode === 'single-file') {
+      const markdown = exportMarkdownFromTiptap(documentContent);
+      const result = fileState.currentFilePath
+        ? await fileServiceRef.current.saveFile(markdown)
+        : await fileServiceRef.current.saveFileAs(markdown);
+      if (result.success) {
+        const activeTab = tabManagerRef.current.getActiveTab();
+        if (activeTab && activeTab.isModified) {
+          tabManagerRef.current.updateTabModified(activeTab.id, false);
+        }
+      }
+      return result.success;
+    }
+    return false;
+  }, [viewMode, saveCurrentChapter, documentContent, fileState.currentFilePath]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
 
   const handleExportMarkdown = async () => {
     const markdown = exportMarkdownFromTiptap(documentContent);
@@ -367,8 +406,10 @@ function App() {
   };
 
   const handleSaveTab = async (tabId: string) => {
-    await handleSave();
-    tabManagerRef.current.updateTabModified(tabId, false);
+    const success = await handleSave();
+    if (success) {
+      tabManagerRef.current.updateTabModified(tabId, false);
+    }
   };
 
   const handleDiscardTabChanges = (tabId: string) => {
@@ -407,9 +448,15 @@ function App() {
             <TopBar
               viewMode="workspace"
               title={workspace.project.title}
-              isModified={fileState.isModified}
-              saveStatus={fileState.saveStatus}
-              lastSavedTime={fileState.lastSavedTime}
+              isModified={
+                tabState.tabs.find(t => t.id === tabState.activeTabId)?.isModified ?? false
+              }
+              saveStatus={
+                tabState.tabs.find(t => t.id === tabState.activeTabId)?.isModified
+                  ? 'modified'
+                  : 'saved'
+              }
+              lastSavedTime={null}
               onSave={handleSave}
               onExportMarkdown={handleExportMarkdown}
               onCloseWorkspace={handleCloseWorkspace}

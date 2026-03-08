@@ -177,10 +177,10 @@ export class FileService {
   createNewFile() {
     this.updateState({
       currentFilePath: null,
-      isModified: false,
+      isModified: true,
       lastSavedTime: null,
       fileFormat: 'udn',
-      saveStatus: 'saved',
+      saveStatus: 'modified',
     });
   }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useEditorContext } from '@/components/editor/EditorContext';
+import { countWords } from '@/utils/wordCount';
 
 export interface StatusBarProps {
   className?: string;
@@ -9,13 +10,6 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '' }) => {
   const { editor, isReady } = useEditorContext();
   const [wordCount, setWordCount] = React.useState(0);
   const [selectedCount, setSelectedCount] = React.useState(0);
-
-  const countWords = (text: string): number => {
-    const chineseChars = text.match(/[\u4e00-\u9fa5]/g) || [];
-    const englishWords = text.match(/[a-zA-Z]+/g) || [];
-    const numbers = text.match(/\d+/g) || [];
-    return chineseChars.length + englishWords.length + numbers.length;
-  };
 
   React.useEffect(() => {
     if (!editor || !isReady) return;
