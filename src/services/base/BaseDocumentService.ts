@@ -124,12 +124,25 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       const filePath = `${workspacePath}/${typeDir}/${fileName}`;
 
       const now = new Date().toISOString();
+      const isStory = this.getIndexType() === 'story';
+
+      let autoAssignedNumber = data.number;
+      if (isStory && autoAssignedNumber === undefined) {
+        const existingDocs = await this.getAll(workspacePath);
+        const maxExistingNumber = existingDocs.reduce((max, doc) => {
+          const docNumber = doc.number ?? 0;
+          return docNumber > max ? docNumber : max;
+        }, 0);
+        autoAssignedNumber = maxExistingNumber + 1;
+      }
+
       const meta: TMeta = {
         ...data,
         id,
-        category: this.getIndexType() === 'story' ? 'story' : 'material',
+        category: isStory ? 'story' : 'material',
         order: data.order ?? 0,
         wordCount: data.wordCount ?? 0,
+        number: autoAssignedNumber,
         created: now,
         modified: now,
         path: `${typeDir}/${fileName}`,
