@@ -238,7 +238,7 @@ body {
 
 .tiptap-content strong {
   font-weight: 700;
-  color: #111827;
+  /* color 由内联样式或继承决定，不设置固定颜色 */
 }
 
 .tiptap-content em {
@@ -395,7 +395,7 @@ body {
 
 .markdown-content strong {
   font-weight: 700;
-  color: #111827;
+  /* color 由内联样式或继承决定，不设置固定颜色 */
 }
 
 .markdown-content em {
