@@ -99,12 +99,19 @@ unknown-diegesis/
 - [ ] 双链功能
 - [ ] 章节标签
 
-## 许可证
-
 ## 图文混排功能概览
 
-- 已实现图文混排功能，支持在 BlockEditor 中渲染图片块，新增图片块组件 ImageBlock.tsx，CharacterPanel.tsx，ImageHostPanel.tsx，图片路径解析工具 imagePath.ts，图片元数据管理 ImageMetadataManager.ts，图片导出 Markdown/Word exporters markdown.ts、word.ts。
-- 关键文件：src/types/image.ts, src/utils/imagePath.ts, src/utils/ImageMetadataManager.ts, src/services/CharacterLibrary.ts, src/services/ImageHostManager.ts, src/services/PasteImageHandler.ts, src/components/ImageBlock.tsx, src/components/CharacterPanel.tsx, src/components/ImageHostPanel.tsx, src/utils/exporters/markdown.ts, src/utils/exporters/word.ts。
-- 导出：markdown.ts、word.ts 导出器实现了图像块导出能力，README 已更新。
-- 流程：BlockEditor 渲染图片块，与图片宿主/角色信息联动；导出支持 Markdown/Word。
-  MIT
+- 已实现图文混排功能，使用 Tiptap 单编辑器架构，通过自定义 NodeView 支持图片块、骰点块等块类型。
+- 关键文件：
+  - 编辑器核心：`src/components/editor/EditorContext.tsx`, `src/components/editor/Editor.tsx`
+  - 自定义节点：`src/extensions/nodes/` (BlockWrapperExtension, ImageBlockExtension, DiceBlockExtension, LayoutRowExtension, LayoutColumnExtension)
+  - 自定义视图：`src/components/BlockWrapperView.tsx`, `src/components/ImageBlockView.tsx`, `src/components/DiceBlockView.tsx`, `src/components/LayoutRowView.tsx`, `src/components/LayoutColumnView.tsx`
+  - 图片相关：`src/types/image.ts`, `src/utils/imagePath.ts`, `src/utils/ImageMetadataManager.ts`
+  - 服务：`src/services/CharacterLibrary.ts`, `src/services/ImageHostManager.ts`, `src/services/PasteImageHandler.ts`
+  - 导出：`src/utils/exporters/markdown.ts`, `src/utils/exporters/word.ts`, `src/utils/exporters/nga.ts`
+- 导出：支持 Markdown、Word、NGA BBCode 格式导出。
+- 架构：单编辑器实例管理所有内容，通过 Tiptap 自定义节点实现块级编辑功能。
+
+## 许可证
+
+MIT

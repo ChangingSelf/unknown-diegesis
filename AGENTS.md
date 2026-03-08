@@ -53,8 +53,8 @@ yarn format:check
 > 单个测试文件运行示例（假设使用 vitest）：
 >
 > ```bash
-> npx vitest run src/utils/BlockManager.test.ts
-> npx vitest run --filter "BlockManager"
+> > npx vitest run src/utils/exporters/markdown.test.ts
+> npx vitest run --filter "exporters"
 > ```
 
 ---
@@ -101,18 +101,18 @@ unknown-diegesis/
 
 ```typescript
 // ✅ 正确：使用 interface 定义类型
-interface Block {
-  id: string;
-  type: BlockType;
-  content: string;
+interface TiptapNode {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: TiptapNode[];
 }
 
 // ✅ 正确：使用 type 定义联合类型
-export type BlockType = 'heading' | 'paragraph' | 'quote';
+export type BlockType = 'heading' | 'paragraph' | 'quote' | 'dice' | 'image';
 
 // ✅ 正确：严格类型检查，不使用 any
-function updateBlock(id: string, updates: Partial<Block>): Block | null {
-  // ...
+function updateNodeContent(node: TiptapNode, content: TiptapNode[]): TiptapNode {
+  return { ...node, content };
 }
 ```
 
@@ -126,13 +126,13 @@ function updateBlock(id: string, updates: Partial<Block>): Block | null {
 
 | 类型      | 规范                         | 示例                                  |
 | --------- | ---------------------------- | ------------------------------------- |
-| 文件名    | kebab-case                   | `block-manager.ts`, `file-service.ts` |
-| 组件名    | PascalCase                   | `BlockEditor.tsx`, `FileMenu.tsx`     |
-| 类名      | PascalCase                   | `BlockManager`, `FileService`         |
-| 函数/方法 | camelCase                    | `getBlocks()`, `openFile()`           |
+| 文件名    | kebab-case                   | `file-service.ts`, `story-service.ts` |
+| 组件名    | PascalCase                   | `EditorView.tsx`, `FileMenu.tsx`      |
+| 类名      | PascalCase                   | `FileService`, `StoryService`         |
+| 函数/方法 | camelCase                    | `getDocuments()`, `openFile()`        |
 | 私有方法  | camelCase + 前缀 `_`（可选） | `_generateId()`                       |
 | 常量      | UPPER_SNAKE_CASE             | `MAX_COLUMN_COUNT = 3`                |
-| 接口      | PascalCase                   | `FileState`, `LayoutRow`              |
+| 接口      | PascalCase                   | `FileState`, `TiptapDocument`         |
 
 ### 4.3 导入规范
 
@@ -146,21 +146,21 @@ import { EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 // 3. 项目内部 - 绝对路径别名
-import { Block, BlockType } from '@/types/block';
-import { BlockManager } from '@/utils/BlockManager';
+import { TiptapDocument } from '@/types/tiptap';
 import { FileService } from '@/services/FileService';
+import { exportMarkdownFromTiptap } from '@/utils/exporters/markdown';
 
 // 4. 组件
-import { BlockEditor } from '@/components/BlockEditor';
+import { EditorView } from '@/components/EditorView';
 
 // 5. 类型（如果需要）
-import type { FileState } from '@/types/block';
+import type { DocumentMeta } from '@/types/document';
 
 // 6. CSS/样式
 import './index.css';
 
 // ❌ 错误：相对路径与别名混用
-// import BlockManager from '../utils/BlockManager'; // 不推荐
+// import FileService from '../services/FileService'; // 不推荐
 ```
 
 ### 4.4 组件规范
@@ -168,20 +168,18 @@ import './index.css';
 ```typescript
 // ✅ 正确：使用函数组件 + TypeScript
 import React from 'react';
-import { Block } from '@/types/block';
+import { TiptapDocument } from '@/types/tiptap';
 
-interface BlockEditorProps {
-  block: Block;
-  onUpdate: (block: Block) => void;
-  isEditing?: boolean;
-  onToggleEdit?: () => void;
+interface EditorViewProps {
+  initialContent?: TiptapDocument;
+  onContentChange?: (content: TiptapDocument) => void;
+  placeholder?: string;
 }
 
-export const BlockEditor: React.FC<BlockEditorProps> = ({
-  block,
-  onUpdate,
-  isEditing = false,
-  onToggleEdit,
+export const EditorView: React.FC<EditorViewProps> = ({
+  initialContent,
+  onContentChange,
+  placeholder = '开始输入...',
 }) => {
   // 组件逻辑
   return <div>...</div>;
@@ -238,17 +236,15 @@ function generateId(): string {
 
 ```typescript
 // ✅ 正确：返回 boolean 表示成功/失败
-function deleteBlock(id: string): boolean {
-  const index = this.blocks.findIndex(block => block.id === id);
-  if (index === -1) return false;
-
-  this.blocks.splice(index, 1);
+function saveDocument(doc: TiptapDocument): boolean {
+  if (!doc.content) return false;
+  // 保存逻辑
   return true;
 }
 
 // ✅ 正确：返回 null 表示失败
-function getBlock(id: string): Block | undefined {
-  return this.blocks.find(block => block.id === id);
+function getNodeById(doc: TiptapDocument, id: string): TiptapNode | undefined {
+  return findNodeRecursive(doc.content, node => node.attrs?.id === id);
 }
 ```
 
@@ -298,21 +294,32 @@ class ErrorBoundary extends React.Component<
 
 ### 6.1 当前模式
 
-项目使用 **React 内置状态管理**：
+项目使用 **Tiptap 单编辑器架构**，所有内容通过单个 Tiptap 编辑器实例管理：
 
 ```typescript
 function App() {
-  // 使用 useState
-  const [blocks, setBlocks] = useState<Block[]>([]);
+  // 编辑器内容状态
+  const [documentContent, setDocumentContent] = useState<TiptapDocument>(createEmptyDocument());
 
   // 使用 useRef 存储不触发重渲染的服务实例
   const fileServiceRef = useRef<FileService>(new FileService());
-  const blockManagerRef = useRef<BlockManager>(new BlockManager());
+  const storyServiceRef = useRef<StoryService>(new StoryService());
 
   // 状态提升到根组件
   const [fileState, setFileState] = useState(fileServiceRef.current.getState());
 }
 ```
+
+### 6.2 编辑器架构
+
+编辑器使用自定义 Tiptap 节点实现块级功能：
+
+- `blockWrapper` - 包装段落、标题等文本块
+- `diceBlock` - 骰点块
+- `imageBlock` - 图片块
+- `layoutRow` / `layoutColumn` - 布局行和列
+
+每个节点通过 `ReactNodeViewRenderer` 渲染为 React 组件。
 
 ### 6.2 观察者模式
 
@@ -447,5 +454,5 @@ Closes #123
 
 ---
 
-> 最后更新：2026-03-06
+> 最后更新：2026-03-08
 > 项目版本：0.1.0
