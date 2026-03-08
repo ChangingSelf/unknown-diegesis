@@ -4,7 +4,6 @@ function exportTextContent(node: TiptapNode): string {
   if (node.type === 'text' && node.text) {
     let text = node.text;
 
-    // 处理文本标记
     if (node.marks) {
       node.marks.forEach(mark => {
         switch (mark.type) {
@@ -31,6 +30,10 @@ function exportTextContent(node: TiptapNode): string {
     }
 
     return text;
+  }
+
+  if (node.type === 'hardBreak') {
+    return '  \n';
   }
 
   if (node.content) {
