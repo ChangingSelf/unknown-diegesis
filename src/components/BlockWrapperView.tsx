@@ -1,11 +1,11 @@
 import { memo, useCallback } from 'react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
-import { Dropdown, Button, Space } from 'antd';
-import { MenuProps } from 'antd';
+import { Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   DeleteOutlined,
-  DragOutlined,
+  HolderOutlined,
   FormOutlined,
   OrderedListOutlined,
   UnorderedListOutlined,
@@ -44,12 +44,22 @@ const BlockWrapperView = memo(({ node, selected, updateAttributes, deleteNode }:
     deleteNode();
   }, [deleteNode]);
 
-  const menuItems: MenuProps['items'] = blockTypeOptions.map(option => ({
-    key: option.key,
-    label: option.label,
-    icon: option.icon,
-    onClick: () => handleBlockTypeChange(option.key),
-  }));
+  const menuItems: MenuProps['items'] = [
+    ...blockTypeOptions.map(option => ({
+      key: option.key,
+      label: option.label,
+      icon: option.icon,
+      onClick: () => handleBlockTypeChange(option.key),
+    })),
+    { type: 'divider' as const },
+    {
+      key: 'delete',
+      label: '删除',
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: handleDelete,
+    },
+  ];
 
   return (
     <NodeViewWrapper
@@ -58,36 +68,19 @@ const BlockWrapperView = memo(({ node, selected, updateAttributes, deleteNode }:
       data-block-type={blockType}
       onMouseDown={handleMouseDown}
     >
-      <div
-        className="block-drag-handle absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing flex items-center gap-1"
-        contentEditable={false}
-        draggable
-        data-drag-handle
-      >
-        <DragOutlined className="text-gray-400 text-sm" />
-      </div>
+      <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomLeft">
+        <div
+          className="block-handle absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5"
+          contentEditable={false}
+          draggable
+          data-drag-handle
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <HolderOutlined className="text-gray-400 text-sm" />
+        </div>
+      </Dropdown>
 
-      <div
-        className="block-controls absolute right-0 top-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity"
-        contentEditable={false}
-      >
-        <Space size="small">
-          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button size="small" type="text">
-              {blockTypeOptions.find(o => o.key === blockType)?.label || '段落'}
-            </Button>
-          </Dropdown>
-          <Button
-            size="small"
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={handleDelete}
-          />
-        </Space>
-      </div>
-
-      <div className="block-content">
+      <div className="block-content pl-2">
         <NodeViewContent className="block-content-inner" />
       </div>
     </NodeViewWrapper>
