@@ -142,10 +142,18 @@ function App() {
         e.preventDefault();
         handleSave();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        if (viewMode === 'workspace' && workspace) {
+          handleChapterCreate();
+        } else {
+          handleNew();
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave]);
+  }, [handleSave, viewMode, workspace]);
 
   const handleExportMarkdown = async () => {
     const markdown = exportMarkdownFromTiptap(documentContent);
@@ -342,7 +350,8 @@ function App() {
     tabManagerRef.current.closeTab(tabId);
 
     if (tabState.tabs.length === 1) {
-      setViewMode('welcome');
+      setCurrentChapterId(null);
+      setCurrentDocumentData(null);
       setDocumentContent(createEmptyDocument());
     }
   };
@@ -404,7 +413,8 @@ function App() {
     }
 
     tabManagerRef.current.closeAllTabs();
-    setViewMode('welcome');
+    setCurrentChapterId(null);
+    setCurrentDocumentData(null);
     setDocumentContent(createEmptyDocument());
   };
 

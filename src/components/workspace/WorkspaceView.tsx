@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Layout, Tabs, Typography, Statistic, Row, Col, Button } from 'antd';
+import { Layout, Tabs, Typography, Statistic, Row, Col, Button, Empty } from 'antd';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   FileTextOutlined,
   AppstoreOutlined,
+  FileAddOutlined,
 } from '@ant-design/icons';
 import { Workspace } from '@/types/workspace';
 import { TabState } from '@/types/tab';
@@ -221,7 +222,45 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           onCloseAll={onCloseAll}
           onTogglePin={onTogglePin}
         />
-        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          {currentChapterId ? (
+            children
+          ) : (
+            <div
+              style={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#fafafa',
+              }}
+            >
+              <Empty
+                image={<FileAddOutlined style={{ fontSize: 64, color: '#bfbfbf' }} />}
+                description={
+                  <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: 14 }}>
+                      选择一个章节开始编辑
+                    </Text>
+                    <br />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      按{' '}
+                      <kbd style={{ background: '#f0f0f0', padding: '2px 6px', borderRadius: 4 }}>
+                        Ctrl
+                      </kbd>{' '}
+                      +{' '}
+                      <kbd style={{ background: '#f0f0f0', padding: '2px 6px', borderRadius: 4 }}>
+                        N
+                      </kbd>{' '}
+                      新建章节
+                    </Text>
+                  </div>
+                }
+              />
+            </div>
+          )}
+        </div>
       </Content>
     </Layout>
   );
