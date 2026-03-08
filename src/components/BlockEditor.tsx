@@ -9,6 +9,8 @@ import Heading from '@tiptap/extension-heading';
 import BulletList from '@tiptap/extension-bullet-list';
 import OrderedList from '@tiptap/extension-ordered-list';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
+import { Dropdown, MenuProps } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { Block } from '../types/block';
 import { createDocumentFromText } from '../types/tiptap';
 import { richTextExtensions } from '../extensions/RichTextExtensions';
@@ -26,6 +28,8 @@ interface BlockEditorProps {
   onDragStart?: (blockId: string) => void;
   onDrop?: (targetBlockId: string) => void;
   isDragging?: boolean;
+  onCreateSibling?: () => void;
+  canCreateSibling?: boolean;
 }
 
 export const BlockEditor: React.FC<BlockEditorProps> = ({
@@ -37,6 +41,8 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   onDragStart,
   onDrop,
   isDragging: _isDragging = false,
+  onCreateSibling,
+  canCreateSibling = true,
 }) => {
   const editor = useEditor({
     extensions: [
@@ -130,6 +136,20 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   };
 
+  const handleMenuItems: MenuProps['items'] = [
+    {
+      key: 'createSibling',
+      label: '添加并列块',
+      icon: <PlusOutlined />,
+      disabled: !canCreateSibling,
+      onClick: () => {
+        if (onCreateSibling) {
+          onCreateSibling();
+        }
+      },
+    },
+  ];
+
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'move';
     if (onDragStart) {
@@ -154,9 +174,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       return (
         <div className="block-editor mb-2 group" onDragOver={handleDragOver} onDrop={handleDrop}>
           <div className="flex items-start">
-            <div className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              ⋮⋮
-            </div>
+            <Dropdown menu={{ items: handleMenuItems }} trigger={['click']}>
+              <div
+                className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                onClick={e => e.stopPropagation()}
+              >
+                ⋮⋮
+              </div>
+            </Dropdown>
             <div className="flex-1">
               <DiceBlock block={block} onUpdate={onUpdate} isEditing={false} />
             </div>
@@ -176,9 +201,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     return (
       <div className="block-editor mb-2 group" onDragOver={handleDragOver} onDrop={handleDrop}>
         <div className="flex items-start">
-          <div className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            ⋮⋮
-          </div>
+          <Dropdown menu={{ items: handleMenuItems }} trigger={['click']}>
+            <div
+              className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              onClick={e => e.stopPropagation()}
+            >
+              ⋮⋮
+            </div>
+          </Dropdown>
           <div className="flex-1">
             <MarkdownRenderer block={block} onEdit={handleBlockClick} />
           </div>
@@ -195,13 +225,16 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         onDrop={handleDrop}
       >
         <div className="flex items-start">
-          <div
-            className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            draggable
-            onDragStart={handleDragStart}
-          >
-            ⋮⋮
-          </div>
+          <Dropdown menu={{ items: handleMenuItems }} trigger={['click']}>
+            <div
+              className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              draggable
+              onDragStart={handleDragStart}
+              onClick={e => e.stopPropagation()}
+            >
+              ⋮⋮
+            </div>
+          </Dropdown>
           <div className="flex-1">
             <DiceBlock block={block} onUpdate={onUpdate} isEditing />
           </div>
@@ -229,13 +262,16 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       onDrop={handleDrop}
     >
       <div className="flex items-start">
-        <div
-          className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
-          draggable
-          onDragStart={handleDragStart}
-        >
-          ⋮⋮
-        </div>
+        <Dropdown menu={{ items: handleMenuItems }} trigger={['click']}>
+          <div
+            className="drag-handle mr-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            draggable
+            onDragStart={handleDragStart}
+            onClick={e => e.stopPropagation()}
+          >
+            ⋮⋮
+          </div>
+        </Dropdown>
         <div className="flex-1">
           <EditorContent
             editor={editor}

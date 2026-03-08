@@ -2,7 +2,6 @@ import React from 'react';
 import { LayoutRow as LayoutRowType, LayoutColumn, Block } from '../types/block';
 import { BlockEditor } from './BlockEditor';
 import { ColumnDivider } from './ColumnDivider';
-import { BlockLayoutControls } from './BlockLayoutControls';
 
 interface LayoutRowProps {
   row: LayoutRowType;
@@ -49,7 +48,7 @@ export const LayoutRowComponent: React.FC<LayoutRowProps> = ({
           <React.Fragment key={column.id}>
             <div className="layout-column" style={{ width: `${column.width}%` }}>
               {getBlocksInColumn(column).map(block => (
-                <div key={block.id} className="mb-3 group">
+                <div key={block.id} className="mb-3">
                   <BlockEditor
                     block={block}
                     onUpdate={onUpdateBlock}
@@ -71,13 +70,9 @@ export const LayoutRowComponent: React.FC<LayoutRowProps> = ({
                       }
                     }}
                     isDragging={draggingBlockId === block.id}
+                    onCreateSibling={() => onCreateSibling(block.id)}
+                    canCreateSibling={row.columns.length < 3}
                   />
-
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {row.columns.length < 3 && (
-                      <BlockLayoutControls onCreateSibling={() => onCreateSibling(block.id)} />
-                    )}
-                  </div>
                 </div>
               ))}
             </div>
