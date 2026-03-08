@@ -27,8 +27,8 @@ export interface ProjectSettings {
  * Internal type for workspace configuration
  */
 export interface Project {
-  /** Version of the schema */
-  version: string;
+  /** Schema version (integer incrementing) */
+  schemaVersion: number;
   /** Title of the book */
   title: string;
   /** Author name */

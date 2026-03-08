@@ -2,6 +2,7 @@ import { DocumentMeta, DocumentData } from '@/types/document';
 import { Block, LayoutRow } from '@/types/block';
 import { IndexManager } from '@/utils/IndexManager';
 import { generateDocumentFileName } from '@/utils/FileNaming';
+import { DOCUMENT_SCHEMA_VERSION } from '@/constants/versions';
 
 export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentMeta> {
   protected indexManager: IndexManager;
@@ -86,7 +87,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       if (result?.success && result?.content) {
         const data = JSON.parse(result.content);
         return {
-          version: data.version || '1.0',
+          schemaVersion: data.schemaVersion ?? this.parseLegacyVersion(data.version),
           type: data.type,
           meta: {
             ...data.meta,
@@ -135,7 +136,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       } as TMeta;
 
       const documentData: DocumentData<TMeta> = {
-        version: '1.0',
+        schemaVersion: DOCUMENT_SCHEMA_VERSION,
         type:
           this.getIndexType() === 'story'
             ? 'story'
@@ -166,6 +167,12 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
     }
   }
 
+  private parseLegacyVersion(version: string | undefined): number {
+    if (!version) return 1;
+    const match = version.match(/^(\d+)/);
+    return match ? parseInt(match[1], 10) : 1;
+  }
+
   async save(
     workspacePath: string,
     _id: string,
@@ -184,7 +191,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       const filePath = `${workspacePath}/${data.meta.path}`;
 
       const documentData: DocumentData<TMeta> = {
-        version: '1.0',
+        schemaVersion: DOCUMENT_SCHEMA_VERSION,
         type:
           this.getIndexType() === 'story'
             ? 'story'

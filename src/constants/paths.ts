@@ -33,7 +33,5 @@ export const INDEX_FILES = {
 
 export const WORKSPACE_META_FILE = 'workspace.json';
 
-export const WORKSPACE_VERSION = '2.0';
-
 export type MaterialSubdir = (typeof MATERIAL_SUBDIRS)[keyof typeof MATERIAL_SUBDIRS];
 export type AssetSubdir = (typeof ASSET_SUBDIRS)[keyof typeof ASSET_SUBDIRS];

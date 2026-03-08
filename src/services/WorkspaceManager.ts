@@ -79,7 +79,7 @@ export class WorkspaceManager {
    */
   private convertConfigToProject(config: WorkspaceConfig): Project {
     return {
-      version: config.version || '1.0',
+      schemaVersion: config.schemaVersion ?? 1,
       title: config.title,
       author: config.author || '',
       genre: config.genre,

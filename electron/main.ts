@@ -3,6 +3,7 @@ import { join } from 'path';
 import { readFile, writeFile, stat, mkdir, readdir, rm, rename, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { randomUUID } from 'crypto';
+import { WORKSPACE_SCHEMA_VERSION, INDEX_SCHEMA_VERSION } from '../src/constants/versions';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -120,7 +121,7 @@ function registerFileHandlers() {
 
       // 创建 workspace.json (新格式)
       const workspace = {
-        version: '2.0',
+        schemaVersion: WORKSPACE_SCHEMA_VERSION,
         id,
         title: name,
         author: '',
@@ -141,14 +142,14 @@ function registerFileHandlers() {
 
       // 创建索引文件
       const storyIndex = {
-        version: '1.0',
+        schemaVersion: INDEX_SCHEMA_VERSION,
         lastUpdated: now,
         documents: {},
         byFolder: {},
       };
 
       const materialsIndex = {
-        version: '1.0',
+        schemaVersion: INDEX_SCHEMA_VERSION,
         lastUpdated: now,
         documents: {},
         byType: {
@@ -163,7 +164,7 @@ function registerFileHandlers() {
       };
 
       const assetsIndex = {
-        version: '1.0',
+        schemaVersion: INDEX_SCHEMA_VERSION,
         lastUpdated: now,
         assets: {},
       };

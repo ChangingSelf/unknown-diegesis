@@ -68,8 +68,8 @@ export interface DocumentMeta {
  * 存储在 workspace.json 中
  */
 export interface WorkspaceMeta {
-  /** 版本号 */
-  version: string;
+  /** 数据结构版本号（整数递增） */
+  schemaVersion: number;
   /** 唯一标识符 */
   id: string;
   /** 作品标题 */
@@ -128,8 +128,8 @@ export interface AssetMeta {
  * 存储在 .ud 文件中
  */
 export interface DocumentData<TMeta = DocumentMeta> {
-  /** 版本号 */
-  version: string;
+  /** 数据结构版本号（整数递增） */
+  schemaVersion: number;
   /** 文档类型标识 */
   type: 'story' | MaterialType;
   /** 元数据 */

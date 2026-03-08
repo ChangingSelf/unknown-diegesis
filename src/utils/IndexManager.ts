@@ -6,34 +6,33 @@ import {
   INDEX_FILES,
   MATERIAL_SUBDIRS,
 } from '@/constants/paths';
+import { INDEX_SCHEMA_VERSION } from '@/constants/versions';
 
 export interface StoryIndex {
-  version: string;
+  schemaVersion: number;
   lastUpdated: string;
   documents: Record<string, DocumentMeta>;
   byFolder: Record<string, string[]>;
 }
 
 export interface MaterialsIndex {
-  version: string;
+  schemaVersion: number;
   lastUpdated: string;
   documents: Record<string, DocumentMeta>;
   byType: Record<MaterialType, string[]>;
 }
 
 export interface AssetsIndex {
-  version: string;
+  schemaVersion: number;
   lastUpdated: string;
   assets: Record<string, import('@/types/document').AssetMeta>;
 }
 
 export type IndexType = 'story' | 'materials' | 'assets';
 
-const INDEX_VERSION = '1.0';
-
 function createEmptyStoryIndex(): StoryIndex {
   return {
-    version: INDEX_VERSION,
+    schemaVersion: INDEX_SCHEMA_VERSION,
     lastUpdated: new Date().toISOString(),
     documents: {},
     byFolder: {},
@@ -42,7 +41,7 @@ function createEmptyStoryIndex(): StoryIndex {
 
 function createEmptyMaterialsIndex(): MaterialsIndex {
   return {
-    version: INDEX_VERSION,
+    schemaVersion: INDEX_SCHEMA_VERSION,
     lastUpdated: new Date().toISOString(),
     documents: {},
     byType: {
@@ -59,7 +58,7 @@ function createEmptyMaterialsIndex(): MaterialsIndex {
 
 function createEmptyAssetsIndex(): AssetsIndex {
   return {
-    version: INDEX_VERSION,
+    schemaVersion: INDEX_SCHEMA_VERSION,
     lastUpdated: new Date().toISOString(),
     assets: {},
   };
