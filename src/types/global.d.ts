@@ -94,6 +94,15 @@ declare global {
         error?: string;
       }>;
       prompt: (message: string, defaultValue?: string) => Promise<string | null>;
+      configGetRecentWorkspaces: () => Promise<{
+        success: boolean;
+        data?: unknown[];
+        error?: string;
+      }>;
+      configSaveRecentWorkspaces: (workspaces: unknown[]) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
     };
   }
 }

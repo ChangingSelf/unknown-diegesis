@@ -6,10 +6,11 @@ import { createEmptyDocument, createDocumentFromText } from './types/tiptap';
 import { Workspace } from './types/workspace';
 import { TabState } from './types/tab';
 import { WorkspaceManager } from './services/WorkspaceManager';
-import { ChapterService, ChapterData } from './services/ChapterService';
+import { StoryService } from './services/StoryService';
+import { DocumentData } from './types/document';
 import { AutoSaveManager } from './services/AutoSaveManager';
 import { FileService } from './services/FileService';
-import { RecentWorkspacesService } from './services/RecentWorkspacesService';
+import { RecentWorkspacesService, RecentWorkspace } from './services/RecentWorkspacesService';
 import { TabManager } from './services/TabManager';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { TopBar, ViewMode } from './components/TopBar';
@@ -23,7 +24,7 @@ const { Header, Content } = Layout;
 
 function App() {
   const workspaceManagerRef = useRef<WorkspaceManager>(new WorkspaceManager());
-  const chapterServiceRef = useRef<ChapterService>(new ChapterService());
+  const storyServiceRef = useRef<StoryService>(new StoryService());
   const autoSaveManagerRef = useRef<AutoSaveManager>(new AutoSaveManager());
   const fileServiceRef = useRef<FileService>(new FileService());
   const blockManagerRef = useRef<BlockManager>(new BlockManager());
@@ -33,16 +34,14 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('welcome');
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
-  const [currentChapterData, setCurrentChapterData] = useState<ChapterData | null>(null);
+  const [currentDocumentData, setCurrentDocumentData] = useState<DocumentData | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [layoutRows, setLayoutRows] = useState(blockManagerRef.current.getLayoutRows());
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
   const [isAltKeyPressed, setIsAltKeyPressed] = useState(false);
   const [fileState, setFileState] = useState(fileServiceRef.current.getState());
-  const [recentWorkspaces, setRecentWorkspaces] = useState(
-    recentWorkspacesServiceRef.current.getRecentWorkspaces()
-  );
+  const [recentWorkspaces, setRecentWorkspaces] = useState<RecentWorkspace[]>([]);
   const [tabState, setTabState] = useState<TabState>(tabManagerRef.current.getState());
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingCloseTabs, setPendingCloseTabs] = useState<string[]>([]);
@@ -68,6 +67,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    recentWorkspacesServiceRef.current.getRecentWorkspaces().then(setRecentWorkspaces);
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = recentWorkspacesServiceRef.current.subscribe(setRecentWorkspaces);
     return unsubscribe;
   }, []);
@@ -78,19 +81,15 @@ function App() {
   }, []);
 
   const saveCurrentChapter = useCallback(async (): Promise<boolean> => {
-    if (!workspace || !currentChapterId || !currentChapterData) return false;
+    if (!workspace || !currentChapterId || !currentDocumentData) return false;
 
-    const success = await chapterServiceRef.current.saveChapter(
-      workspace.path,
-      currentChapterData.meta.path,
-      {
-        meta: currentChapterData.meta,
-        blocks: blockManagerRef.current.getBlocks(),
-        layoutRows: blockManagerRef.current.getLayoutRows(),
-      }
-    );
+    const success = await storyServiceRef.current.save(workspace.path, currentChapterId, {
+      meta: currentDocumentData.meta,
+      blocks: blockManagerRef.current.getBlocks(),
+      layoutRows: blockManagerRef.current.getLayoutRows(),
+    });
     return success;
-  }, [workspace, currentChapterId, currentChapterData]);
+  }, [workspace, currentChapterId, currentDocumentData]);
 
   useEffect(() => {
     const manager = autoSaveManagerRef.current;
@@ -259,7 +258,7 @@ function App() {
       setWorkspace(result.workspace);
       setViewMode('workspace');
       setCurrentChapterId(null);
-      setCurrentChapterData(null);
+      setCurrentDocumentData(null);
       setBlocks([]);
       setLayoutRows([]);
     }
@@ -299,7 +298,7 @@ function App() {
       setWorkspace(result.workspace);
       setViewMode('workspace');
       setCurrentChapterId(null);
-      setCurrentChapterData(null);
+      setCurrentDocumentData(null);
       setBlocks([]);
       setLayoutRows([]);
     }
@@ -313,7 +312,7 @@ function App() {
     workspaceManagerRef.current.closeWorkspace();
     setWorkspace(null);
     setCurrentChapterId(null);
-    setCurrentChapterData(null);
+    setCurrentDocumentData(null);
     setBlocks([]);
     setLayoutRows([]);
     setViewMode('welcome');
@@ -328,10 +327,10 @@ function App() {
     const chapter = workspace.chapters.find(ch => ch.id === chapterId);
     if (!chapter) return;
 
-    const data = await chapterServiceRef.current.loadChapter(workspace.path, chapter.path);
+    const data = await storyServiceRef.current.getById(workspace.path, chapterId);
     if (data) {
       setCurrentChapterId(chapterId);
-      setCurrentChapterData(data);
+      setCurrentDocumentData(data);
 
       if (data.blocks.length === 0) {
         const newBlock = blockManagerRef.current.addBlock('paragraph', createEmptyDocument());
@@ -363,10 +362,9 @@ function App() {
     const title = await showPrompt({ title: '新建章节', placeholder: '请输入章节标题' });
     if (title === null) return;
 
-    const newChapter = await chapterServiceRef.current.createChapter(
-      workspace.path,
-      title || undefined
-    );
+    const newChapter = await storyServiceRef.current.create(workspace.path, {
+      title: title || '新章节',
+    });
     if (newChapter) {
       await workspaceManagerRef.current.refreshWorkspace();
       const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
@@ -377,20 +375,18 @@ function App() {
 
   const handleChapterDelete = async (chapterId: string) => {
     if (!workspace) return;
-    const chapter = workspace.chapters.find(ch => ch.id === chapterId);
-    if (!chapter) return;
 
     const confirmed = await showConfirm({ content: '确定删除此章节？' });
     if (!confirmed) return;
 
-    const success = await chapterServiceRef.current.deleteChapter(workspace.path, chapter.path);
+    const success = await storyServiceRef.current.delete(workspace.path, chapterId);
     if (success) {
       await workspaceManagerRef.current.refreshWorkspace();
       const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
       if (updatedWorkspace) setWorkspace(updatedWorkspace);
       if (currentChapterId === chapterId) {
         setCurrentChapterId(null);
-        setCurrentChapterData(null);
+        setCurrentDocumentData(null);
         setBlocks([]);
         setLayoutRows([]);
       }
@@ -399,7 +395,7 @@ function App() {
 
   const handleChapterReorder = async (chapterIds: string[]) => {
     if (!workspace) return;
-    await chapterServiceRef.current.reorderChapters(workspace.path, chapterIds);
+    await storyServiceRef.current.reorderDocuments(workspace.path, '', chapterIds);
     await workspaceManagerRef.current.refreshWorkspace();
     const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
     if (updatedWorkspace) setWorkspace(updatedWorkspace);
@@ -574,7 +570,7 @@ function App() {
                 layoutRows={layoutRows}
                 editingBlockId={editingBlockId}
                 draggingBlockId={draggingBlockId}
-                title={currentChapterData?.meta.title}
+                title={currentDocumentData?.meta.title}
                 saveStatus={fileState.saveStatus}
                 lastSavedTime={fileState.lastSavedTime}
                 emptyMessage="选择一个章节开始编辑"

@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('workspace:writeFile', { filePath, content }),
   prompt: (message: string, defaultValue?: string) =>
     ipcRenderer.invoke('prompt', { message, defaultValue }),
+
+  // 配置存储 API
+  configGetRecentWorkspaces: () => ipcRenderer.invoke('config:getRecentWorkspaces'),
+  configSaveRecentWorkspaces: (workspaces: unknown[]) =>
+    ipcRenderer.invoke('config:saveRecentWorkspaces', workspaces),
 });
 
 // Type declarations for the exposed API
@@ -77,8 +82,20 @@ declare global {
       workspaceWriteFile: (
         filePath: string,
         content: string
-      ) => Promise<{ success: boolean; error?: string }>;
+      ) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
       prompt: (message: string, defaultValue?: string) => Promise<string | null>;
+      configGetRecentWorkspaces: () => Promise<{
+        success: boolean;
+        data?: unknown[];
+        error?: string;
+      }>;
+      configSaveRecentWorkspaces: (workspaces: unknown[]) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
     };
   }
 }

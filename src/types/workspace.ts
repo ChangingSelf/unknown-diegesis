@@ -1,5 +1,4 @@
 import { Project } from './project';
-import { ChapterMeta } from './chapter';
 import { DocumentMeta } from './document';
 
 /**
@@ -13,8 +12,8 @@ export interface Workspace {
   name: string;
   /** Project metadata */
   project: Project;
-  /** Chapters list */
-  chapters: ChapterMeta[];
+  /** Story documents list */
+  chapters: DocumentMeta[];
   /** Materials list */
   materials: DocumentMeta[];
 }

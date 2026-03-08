@@ -41,6 +41,11 @@ export interface DocumentMeta {
   /** 资料类型（仅资料文档需要） */
   materialType?: MaterialType;
 
+  /** 章节编号（仅正文需要，向后兼容） */
+  number?: number;
+  /** 章节状态（仅正文需要） */
+  status?: 'draft' | 'revising' | 'final';
+
   /** 逻辑文件夹路径（多级用 "/" 分隔，如 "第一卷/第一章"） */
   folder?: string;
   /** 在当前文件夹内的排序 */

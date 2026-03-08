@@ -4,18 +4,27 @@ export interface RecentWorkspace {
   lastOpened: string;
 }
 
-const STORAGE_KEY = 'unknown-diegesis-recent-workspaces';
 const MAX_RECENT = 10;
 
 export class RecentWorkspacesService {
   private recentWorkspaces: RecentWorkspace[] = [];
   private listeners: Set<(workspaces: RecentWorkspace[]) => void> = new Set();
+  private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.loadFromStorage();
+    this.initPromise = this.loadFromStorage();
   }
 
-  addWorkspace(path: string, name: string): void {
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initialized) {
+      await this.initPromise;
+    }
+  }
+
+  async addWorkspace(path: string, name: string): Promise<void> {
+    await this.ensureInitialized();
+
     this.recentWorkspaces = this.recentWorkspaces.filter(ws => ws.path !== path);
 
     this.recentWorkspaces.unshift({
@@ -28,23 +37,32 @@ export class RecentWorkspacesService {
       this.recentWorkspaces = this.recentWorkspaces.slice(0, MAX_RECENT);
     }
 
-    this.saveToStorage();
+    await this.saveToStorage();
     this.notify();
   }
 
-  removeWorkspace(path: string): void {
+  async removeWorkspace(path: string): Promise<void> {
+    await this.ensureInitialized();
+
     this.recentWorkspaces = this.recentWorkspaces.filter(ws => ws.path !== path);
-    this.saveToStorage();
+    await this.saveToStorage();
     this.notify();
   }
 
-  getRecentWorkspaces(): RecentWorkspace[] {
+  async getRecentWorkspaces(): Promise<RecentWorkspace[]> {
+    await this.ensureInitialized();
     return [...this.recentWorkspaces];
   }
 
-  clearRecentWorkspaces(): void {
+  getRecentWorkspacesSync(): RecentWorkspace[] {
+    return [...this.recentWorkspaces];
+  }
+
+  async clearRecentWorkspaces(): Promise<void> {
+    await this.ensureInitialized();
+
     this.recentWorkspaces = [];
-    this.saveToStorage();
+    await this.saveToStorage();
     this.notify();
   }
 
@@ -53,27 +71,39 @@ export class RecentWorkspacesService {
     return () => this.listeners.delete(listener);
   }
 
-  private loadFromStorage(): void {
+  private async loadFromStorage(): Promise<void> {
+    const api = window.electronAPI;
+    if (!api?.configGetRecentWorkspaces) {
+      this.recentWorkspaces = [];
+      this.initialized = true;
+      return;
+    }
+
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        this.recentWorkspaces = JSON.parse(stored);
+      const result = await api.configGetRecentWorkspaces();
+      if (result?.success && Array.isArray(result.data)) {
+        this.recentWorkspaces = result.data as RecentWorkspace[];
       }
     } catch (error) {
       console.error('Failed to load recent workspaces from storage:', error);
       this.recentWorkspaces = [];
     }
+
+    this.initialized = true;
   }
 
-  private saveToStorage(): void {
+  private async saveToStorage(): Promise<void> {
+    const api = window.electronAPI;
+    if (!api?.configSaveRecentWorkspaces) return;
+
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.recentWorkspaces));
+      await api.configSaveRecentWorkspaces(this.recentWorkspaces);
     } catch (error) {
       console.error('Failed to save recent workspaces to storage:', error);
     }
   }
 
   private notify(): void {
-    this.listeners.forEach(listener => listener(this.getRecentWorkspaces()));
+    this.listeners.forEach(listener => listener(this.getRecentWorkspacesSync()));
   }
 }

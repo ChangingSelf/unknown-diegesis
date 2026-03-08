@@ -6,6 +6,10 @@ import { randomUUID } from 'crypto';
 
 const isDev = process.env.NODE_ENV === 'development';
 
+function normalizePath(path: string): string {
+  return path.replace(/\//g, '\\');
+}
+
 // 注册文件操作 IPC handlers
 function registerFileHandlers() {
   // 打开文件
@@ -181,7 +185,7 @@ function registerFileHandlers() {
   // 读取目录内容
   ipcMain.handle('workspace:readDir', async (_, { path }: { path: string }) => {
     try {
-      const files = await readdir(path);
+      const files = await readdir(normalizePath(path));
       return { success: true, files };
     } catch (error) {
       console.error('Error reading directory:', error);
@@ -192,7 +196,7 @@ function registerFileHandlers() {
   // 创建目录
   ipcMain.handle('workspace:mkdir', async (_, { path }: { path: string }) => {
     try {
-      await mkdir(path, { recursive: true });
+      await mkdir(normalizePath(path), { recursive: true });
       return { success: true };
     } catch (error) {
       console.error('Error creating directory:', error);
@@ -203,11 +207,12 @@ function registerFileHandlers() {
   // 删除文件/目录
   ipcMain.handle('workspace:delete', async (_, { path }: { path: string }) => {
     try {
-      const stats = await stat(path);
+      const normalizedPath = normalizePath(path);
+      const stats = await stat(normalizedPath);
       if (stats.isDirectory()) {
-        await rm(path, { recursive: true, force: true });
+        await rm(normalizedPath, { recursive: true, force: true });
       } else {
-        await rm(path);
+        await rm(normalizedPath);
       }
       return { success: true };
     } catch (error) {
@@ -221,7 +226,7 @@ function registerFileHandlers() {
     'workspace:move',
     async (_, { oldPath, newPath }: { oldPath: string; newPath: string }) => {
       try {
-        await rename(oldPath, newPath);
+        await rename(normalizePath(oldPath), normalizePath(newPath));
         return { success: true };
       } catch (error) {
         console.error('Error moving:', error);
@@ -235,7 +240,7 @@ function registerFileHandlers() {
     'workspace:copyFile',
     async (_, { source, destination }: { source: string; destination: string }) => {
       try {
-        await copyFile(source, destination);
+        await copyFile(normalizePath(source), normalizePath(destination));
         return { success: true, path: destination };
       } catch (error) {
         console.error('Error copying file:', error);
@@ -247,7 +252,7 @@ function registerFileHandlers() {
   // 读取文件内容
   ipcMain.handle('workspace:readFile', async (_, { filePath }: { filePath: string }) => {
     try {
-      const content = await readFile(filePath, 'utf-8');
+      const content = await readFile(normalizePath(filePath), 'utf-8');
       return { success: true, content };
     } catch (error) {
       console.error('Error reading file:', error);
@@ -260,7 +265,14 @@ function registerFileHandlers() {
     'workspace:writeFile',
     async (_, { filePath, content }: { filePath: string; content: string }) => {
       try {
-        await writeFile(filePath, content, 'utf-8');
+        const normalizedPath = normalizePath(filePath);
+        const parentDir = join(normalizedPath, '..');
+
+        if (!existsSync(parentDir)) {
+          await mkdir(parentDir, { recursive: true });
+        }
+
+        await writeFile(normalizedPath, content, 'utf-8');
         return { success: true };
       } catch (error) {
         console.error('Error writing file:', error);
@@ -371,6 +383,37 @@ function registerFileHandlers() {
       }
     }
   );
+
+  // 配置存储 IPC handlers
+  const userDataPath = app.getPath('userData');
+  const configPath = join(userDataPath, 'config');
+  const recentWorkspacesPath = join(configPath, 'recent-workspaces.json');
+
+  ipcMain.handle('config:getRecentWorkspaces', async () => {
+    try {
+      if (!existsSync(recentWorkspacesPath)) {
+        return { success: true, data: [] };
+      }
+      const content = await readFile(recentWorkspacesPath, 'utf-8');
+      return { success: true, data: JSON.parse(content) };
+    } catch (error) {
+      console.error('Error reading recent workspaces:', error);
+      return { success: true, data: [] };
+    }
+  });
+
+  ipcMain.handle('config:saveRecentWorkspaces', async (_, workspaces: unknown[]) => {
+    try {
+      if (!existsSync(configPath)) {
+        await mkdir(configPath, { recursive: true });
+      }
+      await writeFile(recentWorkspacesPath, JSON.stringify(workspaces, null, 2), 'utf-8');
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving recent workspaces:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
 }
 
 function createWindow(): void {

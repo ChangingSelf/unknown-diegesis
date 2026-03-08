@@ -1,6 +1,5 @@
 import { Workspace } from '../types/workspace';
-import { ChapterMeta } from '../types/chapter';
-import { DocumentMeta, MaterialType } from '@/types/document';
+import { DocumentMeta, MaterialType } from '../types/document';
 import { WorkspaceService, WorkspaceConfig } from './WorkspaceService';
 import { STORY_DIR, MATERIALS_DIR } from '../constants/paths';
 import { Project } from '../types/project';
@@ -198,10 +197,10 @@ export class WorkspaceManager {
    * 扫描工作区内容
    */
   private async scanWorkspace(path: string): Promise<{
-    chapters: ChapterMeta[];
+    chapters: DocumentMeta[];
     materials: DocumentMeta[];
   }> {
-    const chapters: ChapterMeta[] = [];
+    const chapters: DocumentMeta[] = [];
     const materials: DocumentMeta[] = [];
     const api = window.electronAPI;
     if (!api?.workspaceReadDir || !api?.workspaceReadFile) {
@@ -214,7 +213,7 @@ export class WorkspaceManager {
     return { chapters, materials };
   }
 
-  private async scanStory(path: string, chapters: ChapterMeta[]): Promise<void> {
+  private async scanStory(path: string, chapters: DocumentMeta[]): Promise<void> {
     const api = window.electronAPI;
     try {
       const storyPath = `${path}/${STORY_DIR}`;
@@ -244,11 +243,11 @@ export class WorkspaceManager {
           }
         }
 
-        chapters.sort(
-          (a, b) =>
-            ((a as unknown as { order?: number }).order ?? a.number) -
-            ((b as unknown as { order?: number }).order ?? b.number)
-        );
+        chapters.sort((a, b) => {
+          const aOrder = a.order ?? a.number ?? 0;
+          const bOrder = b.order ?? b.number ?? 0;
+          return aOrder - bOrder;
+        });
       }
     } catch (error) {
       console.error('Failed to scan story:', error);

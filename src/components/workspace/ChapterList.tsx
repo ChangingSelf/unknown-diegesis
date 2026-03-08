@@ -7,12 +7,12 @@ import {
   CheckCircleOutlined,
   HolderOutlined,
 } from '@ant-design/icons';
-import { ChapterMeta } from '@/types/chapter';
+import { DocumentMeta } from '@/types/document';
 
 const { Text } = Typography;
 
 interface ChapterListProps {
-  chapters: ChapterMeta[];
+  chapters: DocumentMeta[];
   currentChapterId: string | null;
   onSelect: (chapterId: string) => void;
   onCreate: () => void;
@@ -158,7 +158,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                         >
                           {chapter.title}
                         </Text>
-                        {getStatusTag(chapter.status)}
+                        {getStatusTag(chapter.status ?? 'draft')}
                       </div>
                       <Text type="secondary" className="text-xs">
                         {chapter.wordCount.toLocaleString()} 字
