@@ -24,20 +24,46 @@ export interface TiptapDocument {
 
 export type TiptapContent = TiptapDocument | null;
 
-export function createEmptyDocument(): TiptapDocument {
-  return {
-    type: 'doc',
-    content: [{ type: 'paragraph' }],
-  };
-}
+const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-export function createDocumentFromText(text: string): TiptapDocument {
+export function createEmptyDocument(): TiptapDocument {
+  const now = new Date().toISOString();
   return {
     type: 'doc',
     content: [
       {
-        type: 'paragraph',
-        content: [{ type: 'text', text }],
+        type: 'blockWrapper',
+        attrs: {
+          id: generateId(),
+          blockType: 'paragraph',
+          created: now,
+          modified: now,
+        },
+        content: [{ type: 'paragraph' }],
+      },
+    ],
+  };
+}
+
+export function createDocumentFromText(text: string): TiptapDocument {
+  const now = new Date().toISOString();
+  return {
+    type: 'doc',
+    content: [
+      {
+        type: 'blockWrapper',
+        attrs: {
+          id: generateId(),
+          blockType: 'paragraph',
+          created: now,
+          modified: now,
+        },
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text }],
+          },
+        ],
       },
     ],
   };

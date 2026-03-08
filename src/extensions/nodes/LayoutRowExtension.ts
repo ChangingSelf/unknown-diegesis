@@ -57,14 +57,29 @@ export const LayoutRowExtension = Node.create({
         attrs =>
         ({ commands }) => {
           const columns = attrs?.columns || 2;
-          const columnNodes = Array.from({ length: columns }, () => ({
+          const now = new Date().toISOString();
+          const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          const columnNodes = Array.from({ length: columns }, (_, index) => ({
             type: 'layoutColumn',
-            attrs: { width: 100 / columns },
-            content: [{ type: 'paragraph' }],
+            attrs: { id: `col-${Date.now()}-${index}`, width: 100 / columns },
+            content: [
+              {
+                type: 'blockWrapper',
+                attrs: {
+                  id: generateId(),
+                  blockType: 'paragraph',
+                  created: now,
+                  modified: now,
+                },
+                content: [{ type: 'paragraph' }],
+              },
+            ],
           }));
 
           return commands.insertContent({
             type: this.name,
+            attrs: { id: `row-${Date.now()}` },
             content: columnNodes,
           });
         },

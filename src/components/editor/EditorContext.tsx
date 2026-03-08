@@ -10,6 +10,7 @@ import BulletList from '@tiptap/extension-bullet-list';
 import OrderedList from '@tiptap/extension-ordered-list';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import { richTextExtensions } from '@/extensions/RichTextExtensions';
+import { DocExtension } from '@/extensions/nodes/DocExtension';
 import { BlockWrapper } from '@/extensions/nodes/BlockWrapperExtension';
 import { DiceBlockExtension } from '@/extensions/nodes/DiceBlockExtension';
 import { ImageBlockExtension } from '@/extensions/nodes/ImageBlockExtension';
@@ -45,12 +46,14 @@ const EditorContext = createContext<EditorContextType | null>(null);
 
 const getEditorExtensions = (config: EditorConfig = {}) => {
   return [
+    DocExtension,
     StarterKit.configure({
       heading: false,
       bulletList: false,
       orderedList: false,
       blockquote: false,
       horizontalRule: false,
+      document: false,
     }),
     Placeholder.configure({
       placeholder: config.placeholder || '开始输入...',

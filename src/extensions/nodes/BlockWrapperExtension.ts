@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { TextSelection } from '@tiptap/pm/state';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import BlockWrapperView from '@/components/BlockWrapperView';
 
@@ -23,11 +24,11 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
   group: 'block',
 
   content:
-    '(paragraph | heading | bulletList | orderedList | taskList | blockquote | horizontalRule)+',
+    'paragraph | heading | bulletList | orderedList | taskList | blockquote | horizontalRule',
 
   defining: true,
 
-  isolating: false,
+  isolating: true,
 
   draggable: true,
 
@@ -137,6 +138,41 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
             modified: new Date().toISOString(),
           });
         },
+    };
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => {
+        const { state, dispatch } = this.editor.view;
+        const { $from } = state.selection;
+
+        const blockWrapperNode = $from.node($from.depth - 1);
+        if (blockWrapperNode?.type.name !== this.name) {
+          return false;
+        }
+
+        const blockWrapperPos = $from.before($from.depth - 1);
+        const now = new Date().toISOString();
+        const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        const newBlockWrapper = state.schema.nodes.blockWrapper.create(
+          {
+            id: generateId(),
+            blockType: 'paragraph',
+            created: now,
+            modified: now,
+          },
+          [state.schema.nodes.paragraph.create()]
+        );
+
+        const tr = state.tr.insert(blockWrapperPos + blockWrapperNode.nodeSize, newBlockWrapper);
+        const newPos = blockWrapperPos + blockWrapperNode.nodeSize + 2;
+        tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+        dispatch(tr);
+
+        return true;
+      },
     };
   },
 
