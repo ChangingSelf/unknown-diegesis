@@ -16,7 +16,13 @@ interface MarkdownRendererProps {
 }
 
 const extensions = [
-  StarterKit.configure({ heading: false }),
+  StarterKit.configure({
+    heading: false,
+    bulletList: false,
+    orderedList: false,
+    blockquote: false,
+    horizontalRule: false,
+  }),
   Heading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
   BulletList,
   OrderedList,

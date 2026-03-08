@@ -47,8 +47,11 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // 禁用 StarterKit 自带的 hardBreak，我们手动处理 Enter
-        hardBreak: false,
+        heading: false,
+        bulletList: false,
+        orderedList: false,
+        blockquote: false,
+        horizontalRule: false,
       }),
       Placeholder.configure({
         placeholder: '输入内容...',
@@ -68,13 +71,11 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       EnterKeyExtension.configure({
         onCreateNewBlock: (position, content) => {
           if (onCreateNewBlock) {
-            // 如果是拆分块，需要更新当前块内容
             if (position === 'split' && content) {
               const textContent = editor?.getText() || '';
               const cursorPos = editor?.state.selection.$from.parentOffset || 0;
               const beforeCursor = textContent.substring(0, cursorPos);
 
-              // 更新当前块
               onUpdate({
                 ...block,
                 content: createDocumentFromText(beforeCursor),

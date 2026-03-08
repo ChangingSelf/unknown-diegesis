@@ -588,9 +588,6 @@ function App() {
                 layoutRows={layoutRows}
                 editingBlockId={editingBlockId}
                 draggingBlockId={draggingBlockId}
-                title={currentDocumentData?.meta.title}
-                saveStatus={fileState.saveStatus}
-                lastSavedTime={fileState.lastSavedTime}
                 emptyMessage="选择一个章节开始编辑"
                 onUpdateBlock={handleUpdateBlock}
                 onCreateSibling={handleCreateSibling}
@@ -599,11 +596,6 @@ function App() {
                 onCreateNewBlock={handleCreateNewBlock}
                 onDragBlock={handleDragBlock}
                 onSetDraggingBlock={setDraggingBlockId}
-                onTitleChange={newTitle => {
-                  if (currentChapterId && workspace) {
-                    handleChapterRename(currentChapterId, newTitle);
-                  }
-                }}
               />
             </WorkspaceView>
           </Content>
@@ -674,9 +666,6 @@ function App() {
                 layoutRows={layoutRows}
                 editingBlockId={editingBlockId}
                 draggingBlockId={draggingBlockId}
-                title={fileServiceRef.current.getFileName()}
-                saveStatus={fileState.saveStatus}
-                lastSavedTime={fileState.lastSavedTime}
                 emptyMessage="没有内容，请打开文件或创建新文档"
                 onUpdateBlock={handleUpdateBlock}
                 onCreateSibling={handleCreateSibling}
