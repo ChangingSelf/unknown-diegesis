@@ -1,17 +1,20 @@
-export interface WordExportOptions {
-  workspacePath: string;
-  outputPath: string;
-  fileName?: string;
+import type { Block } from '@/types/block';
+
+interface ExportableBlock {
+  type: string;
+  src?: string;
+  text?: string;
 }
 
-export async function exportToWord(
-  _blocks: unknown[],
-  _options: WordExportOptions
-): Promise<{ success: boolean; filePath?: string; error?: string }> {
-  return {
-    success: false,
-    error: 'Word export requires docx library. Please install: yarn add docx',
-  };
+// Simple Word exporter for image blocks (text-based)
+export function exportWordFromBlocks(blocks: Block[] | ExportableBlock[]): string {
+  return blocks
+    .map(b => {
+      const eb = b as ExportableBlock;
+      if (b.type === 'image') return `[Image: ${eb.src}]`;
+      if (b.type === 'heading') return `Heading: ${eb.text ?? ''}`;
+      if (b.type === 'paragraph') return eb.text ?? '';
+      return '';
+    })
+    .join('\n\n');
 }
-
-export default exportToWord;

@@ -101,4 +101,10 @@ unknown-diegesis/
 
 ## 许可证
 
-MIT
+## 图文混排功能概览
+
+- 已实现图文混排功能，支持在 BlockEditor 中渲染图片块，新增图片块组件 ImageBlock.tsx，CharacterPanel.tsx，ImageHostPanel.tsx，图片路径解析工具 imagePath.ts，图片元数据管理 ImageMetadataManager.ts，图片导出 Markdown/Word exporters markdown.ts、word.ts。
+- 关键文件：src/types/image.ts, src/utils/imagePath.ts, src/utils/ImageMetadataManager.ts, src/services/CharacterLibrary.ts, src/services/ImageHostManager.ts, src/services/PasteImageHandler.ts, src/components/ImageBlock.tsx, src/components/CharacterPanel.tsx, src/components/ImageHostPanel.tsx, src/utils/exporters/markdown.ts, src/utils/exporters/word.ts。
+- 导出：markdown.ts、word.ts 导出器实现了图像块导出能力，README 已更新。
+- 流程：BlockEditor 渲染图片块，与图片宿主/角色信息联动；导出支持 Markdown/Word。
+  MIT

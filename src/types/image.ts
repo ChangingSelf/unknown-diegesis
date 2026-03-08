@@ -1,50 +1,15 @@
-export type ImageSourceType = 'local' | 'remote';
+// Image-related type definitions
+export type ImageLayout = 'full' | 'left' | 'right' | 'center';
 
-export type ImageSource = {
-  type: ImageSourceType;
-  path: string;
-};
-
-export type ImageBlockContent = {
-  source: ImageSource;
+export interface ImageBlockData {
+  id: string;
+  src: string;
+  alt?: string;
   caption?: string;
-  alignment?: 'left' | 'center' | 'right';
-  width?: number;
-  originalWidth?: number;
-  originalHeight?: number;
-};
-
-export interface Character {
-  id: string;
-  name: string;
-  description?: string;
-  created: string;
+  layout?: ImageLayout;
 }
 
-export interface Expression {
-  id: string;
-  characterId: string;
-  name: string;
-  source: ImageSource;
-  thumbnail?: string;
-}
-
-export interface ImageHostConfig {
-  id: string;
-  name: string;
-  type: string;
-  config: Record<string, string>;
-}
-
-export interface ImageHostLink {
-  localPath: string;
-  remoteUrl: string;
-  hostId: string;
-  uploadedAt: string;
-}
-
-export interface CharacterLibrary {
-  id: string;
-  name: string;
-  characters: Character[];
+export interface LayoutRow {
+  kind: 'image-row';
+  blocks: ImageBlockData[];
 }
