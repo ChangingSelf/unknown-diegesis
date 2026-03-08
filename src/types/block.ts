@@ -1,4 +1,5 @@
 import { TiptapContent } from './tiptap';
+import { ImageBlockContent } from './image';
 
 export type BlockType =
   | 'heading'
@@ -8,7 +9,9 @@ export type BlockType =
   | 'orderedList'
   | 'taskList'
   | 'horizontalRule'
-  | 'dice';
+  | 'dice'
+  | 'image'
+  | 'layoutRow';
 
 export interface DiceBlockData {
   formula: string;
@@ -25,6 +28,7 @@ export interface Block {
   layoutRowId?: string;
   layoutColumnId?: string;
   diceData?: DiceBlockData;
+  imageContent?: ImageBlockContent;
   metadata?: {
     tags?: string[];
     created?: Date;

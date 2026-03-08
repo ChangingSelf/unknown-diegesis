@@ -15,6 +15,7 @@ import { richTextExtensions } from '../extensions/RichTextExtensions';
 import MarkdownRenderer from './MarkdownRenderer';
 import { EnterKeyExtension } from '../extensions/EnterKeyExtension';
 import DiceBlock from './DiceBlock';
+import ImageBlock from './ImageBlock';
 
 interface BlockEditorProps {
   block: Block;
@@ -164,6 +165,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       );
     }
 
+    if (block.type === 'image') {
+      return (
+        <div className="block-editor mb-2 group" onDragOver={handleDragOver} onDrop={handleDrop}>
+          <ImageBlock block={block} onUpdate={onUpdate} isEditing={false} />
+        </div>
+      );
+    }
+
     return (
       <div className="block-editor mb-2 group" onDragOver={handleDragOver} onDrop={handleDrop}>
         <div className="flex items-start">
@@ -197,6 +206,18 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
             <DiceBlock block={block} onUpdate={onUpdate} isEditing />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (block.type === 'image') {
+    return (
+      <div
+        className="block-editor editing mb-2 group"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        <ImageBlock block={block} onUpdate={onUpdate} isEditing={true} />
       </div>
     );
   }
