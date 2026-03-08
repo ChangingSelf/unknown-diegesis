@@ -1,6 +1,6 @@
 import { Project } from './project';
 import { ChapterMeta } from './chapter';
-import { MaterialMeta } from './material';
+import { DocumentMeta } from './document';
 
 /**
  * Workspace data structure
@@ -16,5 +16,5 @@ export interface Workspace {
   /** Chapters list */
   chapters: ChapterMeta[];
   /** Materials list */
-  materials: MaterialMeta[];
+  materials: DocumentMeta[];
 }

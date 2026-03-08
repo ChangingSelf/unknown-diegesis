@@ -6,7 +6,7 @@ import {
   FileTextOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { AssetMeta } from '../../services/AssetService';
+import { AssetMeta } from '@/types/document';
 
 interface AssetBrowserProps {
   assets: AssetMeta[];

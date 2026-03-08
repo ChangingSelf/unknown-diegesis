@@ -1,103 +1,84 @@
-import { MaterialMeta, MaterialType } from '../types/material';
-import { Block, LayoutRow } from '../types/block';
+import { DocumentMeta, MaterialType } from '@/types/document';
+import { Block, LayoutRow } from '@/types/block';
+import { BaseDocumentService } from '@/services/base/BaseDocumentService';
+import { generateDocumentFileName } from '@/utils/FileNaming';
 
 export interface MaterialData {
   version: string;
   type: MaterialType;
-  meta: MaterialMeta;
+  meta: DocumentMeta;
   blocks: Block[];
   layoutRows: LayoutRow[];
 }
 
-const MATERIAL_TYPE_DIRS: Record<MaterialType, string> = {
-  character: 'characters',
-  location: 'locations',
-  item: 'items',
-  timeline: '',
-  note: 'notes',
-};
+/**
+ * MaterialService for managing materials in workspace
+ * Extends BaseDocumentService to use common document operations
+ */
+export class MaterialService extends BaseDocumentService<DocumentMeta> {
+  /**
+   * Returns materials directory
+   */
+  protected getTypeDir(): string {
+    return 'materials';
+  }
 
-export class MaterialService {
-  async getMaterials(workspacePath: string, type?: MaterialType): Promise<MaterialMeta[]> {
-    const api = window.electronAPI;
-    if (!api?.workspaceReadDir) {
+  /**
+   * Returns materials index type
+   */
+  protected getIndexType(): 'materials' {
+    return 'materials';
+  }
+
+  /**
+   * Generates a filename with material type prefix
+   */
+  protected generateFileName(type?: MaterialType): string {
+    return generateDocumentFileName(type);
+  }
+
+  /**
+   * Gets materials by type using the index
+   */
+  async getByType(workspacePath: string, type: MaterialType): Promise<DocumentMeta[]> {
+    const index = await this.indexManager.loadMaterialsIndex(workspacePath);
+
+    if (type === 'timeline') {
+      const timelineId = Object.keys(index.documents).find(
+        id => index.documents[id].materialType === 'timeline'
+      );
+      if (timelineId) {
+        return [index.documents[timelineId]];
+      }
       return [];
     }
 
-    const materials: MaterialMeta[] = [];
-
-    if (type) {
-      return this.getMaterialsByType(workspacePath, type);
-    }
-
-    for (const matType of Object.keys(MATERIAL_TYPE_DIRS) as MaterialType[]) {
-      const typeMaterials = await this.getMaterialsByType(workspacePath, matType);
-      materials.push(...typeMaterials);
-    }
-
-    return materials;
+    const typeIds = index.byType[type] || [];
+    return typeIds.map(id => index.documents[id]).filter(Boolean);
   }
 
-  private async getMaterialsByType(
-    workspacePath: string,
-    type: MaterialType
-  ): Promise<MaterialMeta[]> {
-    const api = window.electronAPI;
-    const materials: MaterialMeta[] = [];
-
-    const typeDir = MATERIAL_TYPE_DIRS[type];
-    if (!typeDir) {
-      if (type === 'timeline') {
-        const result = await api.workspaceReadFile(`${workspacePath}/workspace/timeline.ud`);
-        if (result?.success && result?.content) {
-          try {
-            const data = JSON.parse(result.content);
-            materials.push({
-              id: data.meta?.id || 'timeline',
-              name: data.meta?.name || '时间线',
-              type: 'timeline',
-              path: 'workspace/timeline.ud',
-              created: data.meta?.created || new Date().toISOString(),
-              modified: data.meta?.modified || new Date().toISOString(),
-            });
-          } catch {
-            // Ignore parse errors for timeline file
-          }
-        }
-      }
-      return materials;
-    }
-
-    try {
-      const typePath = `${workspacePath}/workspace/${typeDir}`;
-      const result = await api.workspaceReadDir(typePath);
-
-      if (result?.success && result?.files) {
-        const udFiles = result.files.filter((f: string) => f.endsWith('.ud'));
-
-        for (const file of udFiles) {
-          materials.push({
-            id: `material_${type}_${file}`,
-            name: file.replace('.ud', ''),
-            type,
-            path: `workspace/${typeDir}/${file}`,
-            created: new Date().toISOString(),
-            modified: new Date().toISOString(),
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to get materials for type ${type}:`, error);
-    }
-
-    return materials;
-  }
-
+  /**
+   * Creates a new material
+   */
   async createMaterial(
     workspacePath: string,
     type: MaterialType,
-    name: string
-  ): Promise<MaterialMeta | null> {
+    title: string
+  ): Promise<DocumentMeta | null> {
+    if (type === 'timeline') {
+      return this.createTimeline(workspacePath, title);
+    }
+
+    return this.create(workspacePath, {
+      title,
+      materialType: type,
+    });
+  }
+
+  /**
+   * Creates a timeline material in workspace root
+   */
+  private async createTimeline(workspacePath: string, title: string): Promise<DocumentMeta | null> {
     const api = window.electronAPI;
     if (!api?.workspaceWriteFile) {
       console.error('workspaceWriteFile API not available');
@@ -105,48 +86,49 @@ export class MaterialService {
     }
 
     try {
-      const typeDir = MATERIAL_TYPE_DIRS[type];
-      let filePath: string;
-      let materialPath: string;
+      const id = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+      const fileName = `timeline.ud`;
+      const filePath = `${workspacePath}/workspace/${fileName}`;
 
-      if (type === 'timeline') {
-        filePath = `${workspacePath}/workspace/timeline.ud`;
-        materialPath = 'workspace/timeline.ud';
-      } else {
-        const fileName = `${name}.ud`;
-        filePath = `${workspacePath}/workspace/${typeDir}/${fileName}`;
-        materialPath = `workspace/${typeDir}/${fileName}`;
-      }
+      const now = new Date().toISOString();
+      const meta: DocumentMeta = {
+        id,
+        title,
+        category: 'material',
+        materialType: 'timeline',
+        order: 0,
+        wordCount: 0,
+        created: now,
+        modified: now,
+        path: `workspace/${fileName}`,
+      };
 
-      const materialData: MaterialData = {
+      const timelineData: MaterialData = {
         version: '1.0',
-        type,
-        meta: {
-          id: `material_${Date.now()}`,
-          name,
-          type,
-          path: materialPath,
-          created: new Date().toISOString(),
-          modified: new Date().toISOString(),
-        },
+        type: 'timeline',
+        meta,
         blocks: [],
         layoutRows: [],
       };
 
-      const content = JSON.stringify(materialData, null, 2);
+      const content = JSON.stringify(timelineData, null, 2);
       const result = await api.workspaceWriteFile(filePath, content);
 
       if (result?.success) {
-        return materialData.meta;
+        await this.indexManager.updateMaterialsDocument(workspacePath, meta);
+        return meta;
       }
 
       return null;
     } catch (error) {
-      console.error('Failed to create material:', error);
+      console.error('Failed to create timeline:', error);
       return null;
     }
   }
 
+  /**
+   * Deletes a material by path
+   */
   async deleteMaterial(workspacePath: string, materialPath: string): Promise<boolean> {
     const api = window.electronAPI;
     if (!api?.workspaceDelete) {
@@ -164,6 +146,9 @@ export class MaterialService {
     }
   }
 
+  /**
+   * Loads a material by path
+   */
   async loadMaterial(workspacePath: string, materialPath: string): Promise<MaterialData | null> {
     const api = window.electronAPI;
     if (!api?.workspaceReadFile) {
@@ -193,6 +178,9 @@ export class MaterialService {
     }
   }
 
+  /**
+   * Saves a material by path
+   */
   async saveMaterial(
     workspacePath: string,
     materialPath: string,
@@ -217,7 +205,16 @@ export class MaterialService {
 
       const content = JSON.stringify(materialData, null, 2);
       const result = await api.workspaceWriteFile(fullPath, content);
-      return result?.success ?? false;
+
+      if (result?.success) {
+        const meta = materialData.meta;
+        if (meta.id) {
+          await this.indexManager.updateMaterialsDocument(workspacePath, meta);
+        }
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.error('Failed to save material:', error);
       return false;

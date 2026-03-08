@@ -35,7 +35,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   onCreateNewBlock,
   onDragStart,
   onDrop,
-  isDragging = false,
+  isDragging: _isDragging = false,
 }) => {
   const editor = useEditor({
     extensions: [

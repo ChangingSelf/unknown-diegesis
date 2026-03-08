@@ -9,13 +9,15 @@ import {
   PlusOutlined,
   DeleteOutlined,
   SearchOutlined,
+  GlobalOutlined,
+  OrderedListOutlined,
 } from '@ant-design/icons';
-import { MaterialMeta, MaterialType } from '@/types/material';
+import { DocumentMeta, MaterialType } from '@/types/document';
 
 const { Text } = Typography;
 
 interface MaterialPanelProps {
-  materials: MaterialMeta[];
+  materials: DocumentMeta[];
   currentMaterialId: string | null;
   onSelect: (materialId: string) => void;
   onCreate: (type: MaterialType) => void;
@@ -31,6 +33,8 @@ const MATERIAL_TYPE_CONFIG: Record<
   item: { label: '物品', icon: <GiftOutlined />, color: 'orange' },
   timeline: { label: '时间线', icon: <CalendarOutlined />, color: 'purple' },
   note: { label: '笔记', icon: <FileTextOutlined />, color: 'cyan' },
+  worldview: { label: '世界观', icon: <GlobalOutlined />, color: 'geekblue' },
+  outline: { label: '大纲', icon: <OrderedListOutlined />, color: 'volcano' },
 };
 
 export const MaterialPanel: React.FC<MaterialPanelProps> = ({
@@ -45,26 +49,27 @@ export const MaterialPanel: React.FC<MaterialPanelProps> = ({
 
   const groupedMaterials = materials.reduce(
     (acc, material) => {
-      if (!acc[material.type]) {
-        acc[material.type] = [];
+      if (!material.materialType) return acc;
+      if (!acc[material.materialType]) {
+        acc[material.materialType] = [];
       }
-      acc[material.type].push(material);
+      acc[material.materialType].push(material);
       return acc;
     },
-    {} as Record<MaterialType, MaterialMeta[]>
+    {} as Record<MaterialType, DocumentMeta[]>
   );
 
   const filteredGroups = Object.entries(groupedMaterials).reduce(
     (acc, [type, items]) => {
       const filtered = items.filter(item =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        item.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
       if (filtered.length > 0) {
         acc[type as MaterialType] = filtered;
       }
       return acc;
     },
-    {} as Record<MaterialType, MaterialMeta[]>
+    {} as Record<MaterialType, DocumentMeta[]>
   );
 
   const collapseItems = Object.entries(MATERIAL_TYPE_CONFIG).map(([type, config]) => {
@@ -148,7 +153,7 @@ export const MaterialPanel: React.FC<MaterialPanelProps> = ({
                       ellipsis
                       className={`flex-1 ${isSelected ? '!text-blue-600' : '!text-gray-700'}`}
                     >
-                      {material.name}
+                      {material.title}
                     </Text>
                   </div>
                 </List.Item>

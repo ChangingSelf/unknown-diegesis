@@ -1,7 +1,14 @@
 /**
  * MaterialType
  */
-export type MaterialType = 'character' | 'location' | 'item' | 'timeline' | 'note';
+export type MaterialType =
+  | 'character'
+  | 'location'
+  | 'item'
+  | 'worldview'
+  | 'outline'
+  | 'timeline'
+  | 'note';
 
 /**
  * MaterialMeta

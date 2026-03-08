@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { join } from 'path';
 import { readFile, writeFile, stat, mkdir, readdir, rm, rename, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
+import { randomUUID } from 'crypto';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -84,36 +85,47 @@ function registerFileHandlers() {
   // 创建工作区目录结构
   ipcMain.handle('workspace:create', async (_, { path, name }: { path: string; name: string }) => {
     try {
-      // 创建目录结构
+      // 新目录结构 v2.0
       const dirs = [
         path,
-        join(path, 'chapters'),
-        join(path, 'workspace'),
-        join(path, 'workspace', 'characters'),
-        join(path, 'workspace', 'locations'),
-        join(path, 'workspace', 'items'),
-        join(path, 'workspace', 'notes'),
+        join(path, 'story'),
+        join(path, 'materials'),
+        join(path, 'materials', 'characters'),
+        join(path, 'materials', 'locations'),
+        join(path, 'materials', 'items'),
+        join(path, 'materials', 'worldviews'),
+        join(path, 'materials', 'outlines'),
+        join(path, 'materials', 'notes'),
         join(path, 'assets'),
         join(path, 'assets', 'images'),
+        join(path, 'assets', 'images', 'characters'),
+        join(path, 'assets', 'images', 'scenes'),
+        join(path, 'assets', 'images', 'illustrations'),
         join(path, 'assets', 'documents'),
+        join(path, 'assets', 'audio'),
+        join(path, 'assets', 'video'),
+        join(path, '.index'),
       ];
 
       for (const dir of dirs) {
         await mkdir(dir, { recursive: true });
       }
 
-      // 创建 project.json
-      const project = {
-        version: '1.0',
+      const now = new Date().toISOString();
+      const id = randomUUID().replace(/-/g, '').slice(0, 12);
+
+      // 创建 workspace.json (新格式)
+      const workspace = {
+        version: '2.0',
+        id,
         title: name,
         author: '',
-        created: new Date().toISOString(),
-        modified: new Date().toISOString(),
-        statistics: {
-          wordCount: 0,
-          chapterCount: 0,
-          characterCount: 0,
-        },
+        genre: '',
+        description: '',
+        wordCount: 0,
+        chapterCount: 0,
+        created: now,
+        modified: now,
         settings: {
           autoSave: true,
           autoSaveInterval: 3000,
@@ -121,7 +133,43 @@ function registerFileHandlers() {
         },
       };
 
-      await writeFile(join(path, 'project.json'), JSON.stringify(project, null, 2));
+      await writeFile(join(path, 'workspace.json'), JSON.stringify(workspace, null, 2));
+
+      // 创建索引文件
+      const storyIndex = {
+        version: '1.0',
+        lastUpdated: now,
+        documents: {},
+        byFolder: {},
+      };
+
+      const materialsIndex = {
+        version: '1.0',
+        lastUpdated: now,
+        documents: {},
+        byType: {
+          character: [],
+          location: [],
+          item: [],
+          worldview: [],
+          outline: [],
+          timeline: [],
+          note: [],
+        },
+      };
+
+      const assetsIndex = {
+        version: '1.0',
+        lastUpdated: now,
+        assets: {},
+      };
+
+      await writeFile(join(path, '.index', 'story.json'), JSON.stringify(storyIndex, null, 2));
+      await writeFile(
+        join(path, '.index', 'materials.json'),
+        JSON.stringify(materialsIndex, null, 2)
+      );
+      await writeFile(join(path, '.index', 'assets.json'), JSON.stringify(assetsIndex, null, 2));
 
       return { success: true };
     } catch (error) {

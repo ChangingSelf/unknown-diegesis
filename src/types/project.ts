@@ -24,7 +24,7 @@ export interface ProjectSettings {
 
 /**
  * Project metadata
- * Stored in project.json
+ * Internal type for workspace configuration
  */
 export interface Project {
   /** Version of the schema */

@@ -1,8 +1,9 @@
 import { Workspace } from '../types/workspace';
-import { Project } from '../types/project';
 import { ChapterMeta } from '../types/chapter';
-import { MaterialMeta } from '../types/material';
-import { ProjectService } from './ProjectService';
+import { DocumentMeta, MaterialType } from '@/types/document';
+import { WorkspaceService, WorkspaceConfig } from './WorkspaceService';
+import { STORY_DIR, MATERIALS_DIR } from '../constants/paths';
+import { Project } from '../types/project';
 
 export interface WorkspaceResult {
   workspace: Workspace | null;
@@ -16,10 +17,10 @@ export interface WorkspaceResult {
 export class WorkspaceManager {
   private workspace: Workspace | null = null;
   private listeners: Set<(workspace: Workspace | null) => void> = new Set();
-  private projectService: ProjectService;
+  private workspaceService: WorkspaceService;
 
   constructor() {
-    this.projectService = new ProjectService();
+    this.workspaceService = new WorkspaceService();
   }
 
   /**
@@ -49,7 +50,12 @@ export class WorkspaceManager {
     }
 
     try {
-      const project: Project = await this.projectService.loadProject(path);
+      const config = await this.workspaceService.loadWorkspace(path);
+      if (!config) {
+        return { workspace: null, error: '无法加载工作区配置' };
+      }
+
+      const project = this.convertConfigToProject(config);
       const { chapters, materials } = await this.scanWorkspace(path);
 
       this.workspace = {
@@ -66,6 +72,32 @@ export class WorkspaceManager {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       return { workspace: null, error: `打开工作区失败：${errorMessage}` };
     }
+  }
+
+  /**
+   * 将 WorkspaceConfig 转换为 Project 格式
+   * 保持与现有代码的兼容性
+   */
+  private convertConfigToProject(config: WorkspaceConfig): Project {
+    return {
+      version: config.version || '1.0',
+      title: config.title,
+      author: config.author || '',
+      genre: config.genre,
+      description: config.description,
+      created: config.created,
+      modified: config.modified,
+      statistics: {
+        wordCount: config.wordCount || 0,
+        chapterCount: config.chapterCount || 0,
+        characterCount: 0,
+      },
+      settings: config.settings || {
+        autoSave: true,
+        autoSaveInterval: 3000,
+        defaultBlockType: 'paragraph',
+      },
+    } as Project;
   }
 
   /**
@@ -151,8 +183,8 @@ export class WorkspaceManager {
         return { valid: false, error: '文件夹为空' };
       }
 
-      if (!result.files.includes('project.json')) {
-        return { valid: false, error: '无效的工作区：缺少 project.json 文件' };
+      if (!result.files.includes('workspace.json')) {
+        return { valid: false, error: '无效的工作区：缺少 workspace.json 文件' };
       }
 
       return { valid: true };
@@ -167,24 +199,34 @@ export class WorkspaceManager {
    */
   private async scanWorkspace(path: string): Promise<{
     chapters: ChapterMeta[];
-    materials: MaterialMeta[];
+    materials: DocumentMeta[];
   }> {
     const chapters: ChapterMeta[] = [];
-    const materials: MaterialMeta[] = [];
+    const materials: DocumentMeta[] = [];
     const api = window.electronAPI;
     if (!api?.workspaceReadDir || !api?.workspaceReadFile) {
       return { chapters, materials };
     }
 
+    await this.scanStory(path, chapters);
+    await this.scanMaterials(path, materials);
+
+    return { chapters, materials };
+  }
+
+  private async scanStory(path: string, chapters: ChapterMeta[]): Promise<void> {
+    const api = window.electronAPI;
     try {
-      const chaptersPath = `${path}/chapters`;
-      const chaptersResult = await api.workspaceReadDir(chaptersPath);
+      const storyPath = `${path}/${STORY_DIR}`;
+      const storyResult = await api.workspaceReadDir(storyPath);
 
-      if (chaptersResult?.success && chaptersResult?.files) {
-        const uuidFiles = chaptersResult.files.filter((f: string) => /^[a-f0-9]{12}\.ud$/.test(f));
+      if (storyResult?.success && storyResult?.files) {
+        const storyFiles = storyResult.files.filter(
+          (f: string) => f.endsWith('.ud') || /^\d{8}_\d{6}_[a-f0-9]{12}\.ud$/.test(f)
+        );
 
-        for (const file of uuidFiles) {
-          const filePath = `chapters/${file}`;
+        for (const file of storyFiles) {
+          const filePath = `${STORY_DIR}/${file}`;
           const fileResult = await api.workspaceReadFile(`${path}/${filePath}`);
 
           if (fileResult?.success && fileResult?.content) {
@@ -197,55 +239,67 @@ export class WorkspaceManager {
                 });
               }
             } catch {
-              // 忽略解析失败的文件
+              // Skip invalid files
             }
           }
         }
 
-        chapters.sort((a, b) => a.number - b.number);
+        chapters.sort(
+          (a, b) =>
+            ((a as unknown as { order?: number }).order ?? a.number) -
+            ((b as unknown as { order?: number }).order ?? b.number)
+        );
       }
     } catch (error) {
-      console.error('Failed to scan chapters:', error);
+      console.error('Failed to scan story:', error);
     }
+  }
 
+  private async scanMaterials(path: string, materials: DocumentMeta[]): Promise<void> {
+    const api = window.electronAPI;
     try {
-      const workspacePath = `${path}/workspace`;
-      const workspaceResult = await api.workspaceReadDir(workspacePath);
+      const materialsPath = `${path}/${MATERIALS_DIR}`;
+      const materialsResult = await api.workspaceReadDir(materialsPath);
 
-      if (workspaceResult?.success && workspaceResult?.files) {
-        for (const typeDir of ['characters', 'locations', 'items', 'notes']) {
+      if (materialsResult?.success && materialsResult?.files) {
+        const subdirs = ['characters', 'locations', 'items', 'worldviews', 'outlines', 'notes'];
+
+        for (const subdir of subdirs) {
           try {
-            const typePath = `${workspacePath}/${typeDir}`;
-            const typeResult = await api.workspaceReadDir(typePath);
+            const subdirPath = `${materialsPath}/${subdir}`;
+            const subdirResult = await api.workspaceReadDir(subdirPath);
 
-            if (typeResult?.success && typeResult?.files) {
-              const typeFiles = typeResult.files.filter((f: string) => f.endsWith('.ud'));
-              const materialTypeMap: Record<string, string> = {
+            if (subdirResult?.success && subdirResult?.files) {
+              const udFiles = subdirResult.files.filter((f: string) => f.endsWith('.ud'));
+              const materialTypeMap: Record<string, MaterialType> = {
                 characters: 'character',
                 locations: 'location',
                 items: 'item',
+                worldviews: 'worldview',
+                outlines: 'outline',
                 notes: 'note',
               };
-              for (const file of typeFiles) {
+              for (const file of udFiles) {
                 materials.push({
-                  id: `material_${materials.length}`,
-                  name: file.replace('.ud', ''),
-                  type: materialTypeMap[typeDir] as 'character' | 'location' | 'item' | 'note',
-                  path: `workspace/${typeDir}/${file}`,
+                  id: `material_${materials.length}_${file.replace('.ud', '')}`,
+                  title: file.replace('.ud', ''),
+                  category: 'material',
+                  materialType: materialTypeMap[subdir],
+                  path: `${MATERIALS_DIR}/${subdir}/${file}`,
+                  order: materials.length,
+                  wordCount: 0,
                   created: new Date().toISOString(),
                   modified: new Date().toISOString(),
-                } as MaterialMeta);
+                });
               }
             }
           } catch {
-            // 目录可能不存在，跳过
+            // Skip invalid subdirectories
           }
         }
       }
     } catch (error) {
       console.error('Failed to scan materials:', error);
     }
-
-    return { chapters, materials };
   }
 }
