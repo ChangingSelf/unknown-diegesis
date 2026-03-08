@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Button, List, Typography, Popconfirm, Tag, Tooltip, Input, Dropdown } from 'antd';
+import { Button, List, Typography, Tag, Tooltip, Input, Dropdown } from 'antd';
 import type { InputRef } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -51,36 +51,38 @@ export const ChapterList: React.FC<ChapterListProps> = ({
     setContextMenuChapter(chapter);
   };
 
+  const handleContextMenuRename = () => {
+    if (contextMenuChapter) {
+      setEditingId(contextMenuChapter.id);
+      setEditingTitle(contextMenuChapter.title);
+      setContextMenuChapter(null);
+    }
+  };
+
   const contextMenuItems: MenuProps['items'] = contextMenuChapter
     ? [
         {
-          key: 'delete',
+          key: 'rename',
           label: (
-            <Popconfirm
-              title="确定删除此章节？"
-              description="删除后无法恢复"
-              onConfirm={e => {
-                e?.stopPropagation();
-                onDelete(contextMenuChapter.id);
-                setContextMenuChapter(null);
-              }}
-              onCancel={e => {
-                e?.stopPropagation();
-                setContextMenuChapter(null);
-              }}
-              okText="删除"
-              okButtonProps={{ danger: true }}
-              cancelText="取消"
-            >
-              <span
-                className="text-red-500 flex items-center gap-2"
-                onClick={e => e.stopPropagation()}
-              >
-                <DeleteOutlined />
-                删除章节
-              </span>
-            </Popconfirm>
+            <span className="flex items-center gap-2">
+              <EditOutlined />
+              重命名
+            </span>
           ),
+          onClick: handleContextMenuRename,
+        },
+        {
+          type: 'divider',
+        },
+        {
+          key: 'delete',
+          label: '删除章节',
+          icon: <DeleteOutlined />,
+          danger: true,
+          onClick: () => {
+            onDelete(contextMenuChapter.id);
+            setContextMenuChapter(null);
+          },
         },
       ]
     : [];
@@ -208,27 +210,17 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                     `}
                     actions={[
                       <Tooltip key="delete" title="删除章节">
-                        <Popconfirm
-                          title="确定删除此章节？"
-                          description="删除后无法恢复"
-                          onConfirm={e => {
-                            e?.stopPropagation();
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={e => {
+                            e.stopPropagation();
                             onDelete(chapter.id);
                           }}
-                          onCancel={e => e?.stopPropagation()}
-                          okText="删除"
-                          okButtonProps={{ danger: true }}
-                          cancelText="取消"
-                        >
-                          <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<DeleteOutlined />}
-                            onClick={e => e.stopPropagation()}
-                            className="opacity-0 group-hover:opacity-100"
-                          />
-                        </Popconfirm>
+                          className="opacity-0 group-hover:opacity-100"
+                        />
                       </Tooltip>,
                     ]}
                   >
