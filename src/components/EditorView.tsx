@@ -1,77 +1,49 @@
 import React from 'react';
-import { Block, LayoutRow } from '@/types/block';
-import { LayoutRowComponent } from './LayoutRow';
+import { EditorProvider } from './editor/EditorContext';
+import { TiptapEditorComponent, TiptapEditorRef } from './editor/Editor';
+import { StatusBar } from './StatusBar';
 
 interface EditorViewProps {
-  blocks: Block[];
-  layoutRows: LayoutRow[];
-  editingBlockId: string | null;
-  draggingBlockId: string | null;
-  onUpdateBlock: (block: Block) => void;
-  onCreateSibling: (blockId: string) => void;
-  onColumnResize: (rowId: string, columnId: string, newWidth: number) => void;
-  onToggleEdit: (blockId: string) => void;
-  onCreateNewBlock: (
-    blockId: string,
-    position: 'before' | 'after' | 'split',
-    content?: string
-  ) => void;
-  onDragBlock: (sourceBlockId: string, targetBlockId: string) => void;
-  onSetDraggingBlock: (blockId: string | null) => void;
-  emptyMessage?: string;
+  initialContent?: object;
+  onContentChange?: (content: object) => void;
+  placeholder?: string;
+  showStatusBar?: boolean;
 }
 
+/**
+ * EditorView - Main editor component using the new single-editor architecture
+ *
+ * This component wraps the TiptapEditorComponent with EditorProvider and optional StatusBar.
+ * All block management is now handled internally by Tiptap through custom NodeViews.
+ */
 export const EditorView: React.FC<EditorViewProps> = ({
-  blocks,
-  layoutRows,
-  editingBlockId,
-  draggingBlockId,
-  onUpdateBlock,
-  onCreateSibling,
-  onColumnResize,
-  onToggleEdit,
-  onCreateNewBlock,
-  onDragBlock,
-  onSetDraggingBlock,
-  emptyMessage = '没有内容，请打开文件或创建新文档',
+  initialContent,
+  onContentChange,
+  placeholder = '开始输入...',
+  showStatusBar = true,
 }) => {
-  const hasContent = layoutRows.length > 0;
-
-  const handleEmptyAreaClick = () => {
-    if (blocks.length === 1 && editingBlockId !== blocks[0].id) {
-      onToggleEdit(blocks[0].id);
-    }
-  };
+  const editorRef = React.useRef<TiptapEditorRef>(null);
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 overflow-auto p-6">
-      <div
-        className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 min-h-full cursor-text flex-1"
-        onClick={handleEmptyAreaClick}
-      >
-        {hasContent ? (
-          layoutRows.map(row => (
-            <LayoutRowComponent
-              key={row.id}
-              row={row}
-              blocks={blocks}
-              onUpdateBlock={onUpdateBlock}
-              onCreateSibling={onCreateSibling}
-              onColumnResize={onColumnResize}
-              editingBlockId={editingBlockId}
-              onToggleEdit={onToggleEdit}
-              onCreateNewBlock={onCreateNewBlock}
-              onDragBlock={onDragBlock}
-              draggingBlockId={draggingBlockId}
-              onSetDraggingBlock={onSetDraggingBlock}
+    <EditorProvider
+      initialConfig={{
+        content: initialContent,
+        placeholder,
+      }}
+      onContentChange={onContentChange}
+    >
+      <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
+        <div className="flex-1 overflow-auto p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 min-h-full">
+            <TiptapEditorComponent
+              ref={editorRef}
+              className="prose prose-slate max-w-none min-h-[200px]"
+              placeholder={placeholder}
             />
-          ))
-        ) : (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-lg">{emptyMessage}</p>
           </div>
-        )}
+        </div>
+        {showStatusBar && <StatusBar />}
       </div>
-    </div>
+    </EditorProvider>
   );
 };

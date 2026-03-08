@@ -1,5 +1,5 @@
 import { DocumentMeta, MaterialType } from '@/types/document';
-import { Block, LayoutRow } from '@/types/block';
+import { TiptapDocument, createEmptyDocument } from '@/types/tiptap';
 import { BaseDocumentService } from '@/services/base/BaseDocumentService';
 import { generateDocumentFileName } from '@/utils/FileNaming';
 
@@ -7,8 +7,7 @@ export interface MaterialData {
   version: string;
   type: MaterialType;
   meta: DocumentMeta;
-  blocks: Block[];
-  layoutRows: LayoutRow[];
+  content: TiptapDocument;
 }
 
 /**
@@ -107,8 +106,7 @@ export class MaterialService extends BaseDocumentService<DocumentMeta> {
         version: '1.0',
         type: 'timeline',
         meta,
-        blocks: [],
-        layoutRows: [],
+        content: createEmptyDocument(),
       };
 
       const content = JSON.stringify(timelineData, null, 2);
@@ -166,8 +164,7 @@ export class MaterialService extends BaseDocumentService<DocumentMeta> {
           version: data.version || '1.0',
           type: data.type,
           meta: data.meta,
-          blocks: data.blocks || [],
-          layoutRows: data.layoutRows || [],
+          content: data.content || createEmptyDocument(),
         };
       }
 

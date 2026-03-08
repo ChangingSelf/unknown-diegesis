@@ -1,8 +1,7 @@
 import { DocumentMeta, DocumentData } from '@/types/document';
-import { Block, LayoutRow } from '@/types/block';
+import { TiptapDocument, createEmptyDocument } from '@/types/tiptap';
 import { IndexManager } from '@/utils/IndexManager';
 import { generateDocumentFileName } from '@/utils/FileNaming';
-import { DOCUMENT_SCHEMA_VERSION } from '@/constants/versions';
 
 export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentMeta> {
   protected indexManager: IndexManager;
@@ -87,14 +86,13 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       if (result?.success && result?.content) {
         const data = JSON.parse(result.content);
         return {
-          schemaVersion: data.schemaVersion ?? this.parseLegacyVersion(data.version),
+          schemaVersion: data.schemaVersion ?? 1,
           type: data.type,
           meta: {
             ...data.meta,
             path: meta.path,
           } as TMeta,
-          blocks: data.blocks || [],
-          layoutRows: data.layoutRows || [],
+          content: data.content || createEmptyDocument(),
         };
       }
     } catch (error) {
@@ -108,8 +106,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
     workspacePath: string,
     data: {
       title: string;
-      blocks?: Block[];
-      layoutRows?: LayoutRow[];
+      content?: TiptapDocument;
     } & Partial<TMeta>
   ): Promise<TMeta | null> {
     const api = window.electronAPI;
@@ -149,7 +146,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       } as TMeta;
 
       const documentData: DocumentData<TMeta> = {
-        schemaVersion: DOCUMENT_SCHEMA_VERSION,
+        schemaVersion: 1,
         type:
           this.getIndexType() === 'story'
             ? 'story'
@@ -157,8 +154,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
                 | 'story'
                 | import('@/types/document').MaterialType),
         meta,
-        blocks: data.blocks || [],
-        layoutRows: data.layoutRows || [],
+        content: data.content || createEmptyDocument(),
       };
 
       const content = JSON.stringify(documentData, null, 2);
@@ -180,19 +176,12 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
     }
   }
 
-  private parseLegacyVersion(version: string | undefined): number {
-    if (!version) return 1;
-    const match = version.match(/^(\d+)/);
-    return match ? parseInt(match[1], 10) : 1;
-  }
-
   async save(
     workspacePath: string,
     _id: string,
     data: {
       meta: TMeta;
-      blocks: Block[];
-      layoutRows: LayoutRow[];
+      content: TiptapDocument;
     }
   ): Promise<boolean> {
     const api = window.electronAPI;
@@ -204,7 +193,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       const filePath = `${workspacePath}/${data.meta.path}`;
 
       const documentData: DocumentData<TMeta> = {
-        schemaVersion: DOCUMENT_SCHEMA_VERSION,
+        schemaVersion: 1,
         type:
           this.getIndexType() === 'story'
             ? 'story'
@@ -215,8 +204,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
           ...data.meta,
           modified: new Date().toISOString(),
         },
-        blocks: data.blocks,
-        layoutRows: data.layoutRows,
+        content: data.content,
       };
 
       const content = JSON.stringify(documentData, null, 2);
@@ -290,8 +278,7 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
 
     return this.save(workspacePath, id, {
       meta: { ...document.meta, ...metaUpdates } as TMeta,
-      blocks: document.blocks,
-      layoutRows: document.layoutRows,
+      content: document.content,
     });
   }
 }

@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Layout, message } from 'antd';
-import { BlockManager } from './utils/BlockManager';
-import { Block } from './types/block';
-import { createEmptyDocument, createDocumentFromText } from './types/tiptap';
+import { TiptapDocument, createEmptyDocument, createDocumentFromText } from './types/tiptap';
 import { Workspace } from './types/workspace';
 import { TabState } from './types/tab';
 import { WorkspaceManager } from './services/WorkspaceManager';
@@ -19,6 +17,7 @@ import { WorkspaceView } from './components/workspace';
 import { TabsBar, UnsavedTabsDialog } from './components/tabs';
 import { showConfirm } from './hooks/useConfirm';
 import { showPrompt } from './hooks/usePrompt';
+import { exportMarkdownFromTiptap } from './utils/exporters/markdown';
 
 const { Header, Content } = Layout;
 
@@ -27,7 +26,6 @@ function App() {
   const storyServiceRef = useRef<StoryService>(new StoryService());
   const autoSaveManagerRef = useRef<AutoSaveManager>(new AutoSaveManager());
   const fileServiceRef = useRef<FileService>(new FileService());
-  const blockManagerRef = useRef<BlockManager>(new BlockManager());
   const recentWorkspacesServiceRef = useRef<RecentWorkspacesService>(new RecentWorkspacesService());
   const tabManagerRef = useRef<TabManager>(new TabManager());
 
@@ -35,31 +33,12 @@ function App() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
   const [currentDocumentData, setCurrentDocumentData] = useState<DocumentData | null>(null);
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [layoutRows, setLayoutRows] = useState(blockManagerRef.current.getLayoutRows());
-  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
-  const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
-  const [isAltKeyPressed, setIsAltKeyPressed] = useState(false);
+  const [documentContent, setDocumentContent] = useState<TiptapDocument>(createEmptyDocument());
   const [fileState, setFileState] = useState(fileServiceRef.current.getState());
   const [recentWorkspaces, setRecentWorkspaces] = useState<RecentWorkspace[]>([]);
   const [tabState, setTabState] = useState<TabState>(tabManagerRef.current.getState());
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingCloseTabs, setPendingCloseTabs] = useState<string[]>([]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey) setIsAltKeyPressed(true);
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (!e.altKey) setIsAltKeyPressed(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
 
   useEffect(() => {
     const unsubscribe = fileServiceRef.current.subscribe(setFileState);
@@ -85,11 +64,10 @@ function App() {
 
     const success = await storyServiceRef.current.save(workspace.path, currentChapterId, {
       meta: currentDocumentData.meta,
-      blocks: blockManagerRef.current.getBlocks(),
-      layoutRows: blockManagerRef.current.getLayoutRows(),
+      content: documentContent,
     });
     return success;
-  }, [workspace, currentChapterId, currentDocumentData]);
+  }, [workspace, currentChapterId, currentDocumentData, documentContent]);
 
   useEffect(() => {
     const manager = autoSaveManagerRef.current;
@@ -97,22 +75,21 @@ function App() {
       if (viewMode === 'workspace') {
         return await saveCurrentChapter();
       } else if (viewMode === 'single-file' && fileState.currentFilePath) {
-        const content = blockManagerRef.current.toMarkdown();
-        const result = await fileServiceRef.current.saveFile(content);
+        const markdown = exportMarkdownFromTiptap(documentContent);
+        const result = await fileServiceRef.current.saveFile(markdown);
         return result.success;
       }
       return false;
     });
     manager.enable();
     return () => manager.destroy();
-  }, [viewMode, fileState.currentFilePath, saveCurrentChapter]);
+  }, [viewMode, fileState.currentFilePath, saveCurrentChapter, documentContent]);
 
   const handleOpen = async () => {
     const result = await fileServiceRef.current.openFile();
     if (result.success && result.content && result.path) {
-      blockManagerRef.current = BlockManager.fromMarkdown(result.content);
-      setBlocks(blockManagerRef.current.getBlocks());
-      setLayoutRows(blockManagerRef.current.getLayoutRows());
+      const content = createDocumentFromText(result.content);
+      setDocumentContent(content);
       setViewMode('single-file');
 
       const fileName = result.path.split(/[\\/]/).pop() || 'Untitled';
@@ -125,23 +102,20 @@ function App() {
   };
 
   const handleExportMarkdown = async () => {
-    const markdown = blockManagerRef.current.toMarkdown();
+    const markdown = exportMarkdownFromTiptap(documentContent);
     await window.electronAPI.fileSaveAs(markdown);
   };
 
   const handleNew = () => {
-    blockManagerRef.current = new BlockManager();
-    setBlocks([]);
-    setLayoutRows([]);
+    setDocumentContent(createEmptyDocument());
     fileServiceRef.current.createNewFile();
     setViewMode('single-file');
 
     tabManagerRef.current.openTab('file', 'new', 'Untitled');
   };
 
-  const handleUpdateBlock = (block: Block) => {
-    blockManagerRef.current.updateBlock(block.id, block);
-    setBlocks(blockManagerRef.current.getBlocks());
+  const handleContentChange = (content: object) => {
+    setDocumentContent(content as TiptapDocument);
     if (viewMode === 'single-file') {
       fileServiceRef.current.markAsModified();
     }
@@ -151,100 +125,6 @@ function App() {
     if (activeTab && !activeTab.isModified) {
       tabManagerRef.current.updateTabModified(activeTab.id, true);
     }
-  };
-
-  const handleCreateSibling = (blockId: string) => {
-    const newBlock = blockManagerRef.current.createSiblingBlock(blockId);
-    if (newBlock) {
-      setBlocks(blockManagerRef.current.getBlocks());
-      setLayoutRows(blockManagerRef.current.getLayoutRows());
-      setEditingBlockId(newBlock.id);
-      if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
-      autoSaveManagerRef.current.onContentChange();
-    }
-  };
-
-  const handleColumnResize = (rowId: string, columnId: string, newWidth: number) => {
-    blockManagerRef.current.resizeColumn(rowId, columnId, newWidth);
-    setLayoutRows(blockManagerRef.current.getLayoutRows());
-    if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
-    autoSaveManagerRef.current.onContentChange();
-  };
-
-  const handleToggleEdit = (blockId: string) => {
-    setEditingBlockId(editingBlockId === blockId ? null : blockId);
-  };
-
-  const handleCreateNewBlock = (
-    currentBlockId: string,
-    position: 'before' | 'after' | 'split',
-    content?: string
-  ) => {
-    const currentBlock = blockManagerRef.current.getBlock(currentBlockId);
-    if (!currentBlock) return;
-
-    const newBlock = blockManagerRef.current.addBlock(
-      'paragraph',
-      content ? createDocumentFromText(content) : createEmptyDocument()
-    );
-    const allBlocks = blockManagerRef.current.getBlocks();
-    const currentIndex = allBlocks.findIndex(b => b.id === currentBlockId);
-
-    if (currentIndex !== -1) {
-      blockManagerRef.current.deleteBlock(newBlock.id);
-      if (position === 'before') {
-        allBlocks.splice(currentIndex, 0, newBlock);
-      } else {
-        allBlocks.splice(currentIndex + 1, 0, newBlock);
-      }
-      blockManagerRef.current = new BlockManager(
-        allBlocks,
-        blockManagerRef.current.getLayoutRows()
-      );
-      setBlocks([...blockManagerRef.current.getBlocks()]);
-      setLayoutRows([...blockManagerRef.current.getLayoutRows()]);
-      setEditingBlockId(newBlock.id);
-      if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
-      autoSaveManagerRef.current.onContentChange();
-    }
-  };
-
-  const handleDragBlock = (sourceBlockId: string, targetBlockId: string) => {
-    setDraggingBlockId(null);
-    if (sourceBlockId === targetBlockId) return;
-
-    const sourceBlock = blockManagerRef.current.getBlock(sourceBlockId);
-    const targetBlock = blockManagerRef.current.getBlock(targetBlockId);
-    if (!sourceBlock || !targetBlock) return;
-
-    if (isAltKeyPressed) {
-      if (targetBlock.layoutRowId && targetBlock.layoutColumnId) {
-        blockManagerRef.current.moveBlockToColumn(sourceBlockId, targetBlock.layoutColumnId);
-      } else {
-        const newBlock = blockManagerRef.current.createSiblingBlock(targetBlockId);
-        if (newBlock) {
-          blockManagerRef.current.moveBlockToColumn(sourceBlockId, newBlock.layoutColumnId!);
-          blockManagerRef.current.deleteBlockFromLayout(newBlock.id);
-        }
-      }
-    } else {
-      const allBlocks = blockManagerRef.current.getBlocks();
-      const sourceIndex = allBlocks.findIndex(b => b.id === sourceBlockId);
-      const targetIndex = allBlocks.findIndex(b => b.id === targetBlockId);
-      if (sourceIndex !== -1 && targetIndex !== -1) {
-        const [movedBlock] = allBlocks.splice(sourceIndex, 1);
-        allBlocks.splice(targetIndex, 0, movedBlock);
-        blockManagerRef.current = new BlockManager(
-          allBlocks,
-          blockManagerRef.current.getLayoutRows()
-        );
-      }
-    }
-
-    setBlocks(blockManagerRef.current.getBlocks());
-    setLayoutRows(blockManagerRef.current.getLayoutRows());
-    if (viewMode === 'single-file') fileServiceRef.current.markAsModified();
-    autoSaveManagerRef.current.onContentChange();
   };
 
   const handleOpenWorkspace = async () => {
@@ -259,8 +139,7 @@ function App() {
       setViewMode('workspace');
       setCurrentChapterId(null);
       setCurrentDocumentData(null);
-      setBlocks([]);
-      setLayoutRows([]);
+      setDocumentContent(createEmptyDocument());
     }
   };
 
@@ -299,8 +178,7 @@ function App() {
       setViewMode('workspace');
       setCurrentChapterId(null);
       setCurrentDocumentData(null);
-      setBlocks([]);
-      setLayoutRows([]);
+      setDocumentContent(createEmptyDocument());
     }
   };
 
@@ -313,8 +191,7 @@ function App() {
     setWorkspace(null);
     setCurrentChapterId(null);
     setCurrentDocumentData(null);
-    setBlocks([]);
-    setLayoutRows([]);
+    setDocumentContent(createEmptyDocument());
     setViewMode('welcome');
   };
 
@@ -331,26 +208,7 @@ function App() {
     if (data) {
       setCurrentChapterId(chapterId);
       setCurrentDocumentData(data);
-
-      if (data.blocks.length === 0) {
-        const newBlock = blockManagerRef.current.addBlock('paragraph', createEmptyDocument());
-        blockManagerRef.current.addLayoutRow();
-        const rows = blockManagerRef.current.getLayoutRows();
-        const row = rows[rows.length - 1];
-        const column = row.columns[0];
-        column.blockIds.push(newBlock.id);
-        newBlock.layoutRowId = row.id;
-        newBlock.layoutColumnId = column.id;
-
-        setBlocks([...blockManagerRef.current.getBlocks()]);
-        setLayoutRows([...blockManagerRef.current.getLayoutRows()]);
-        setEditingBlockId(newBlock.id);
-      } else {
-        blockManagerRef.current = new BlockManager(data.blocks, data.layoutRows);
-        setBlocks(data.blocks);
-        setLayoutRows(data.layoutRows);
-        setEditingBlockId(null);
-      }
+      setDocumentContent(data.content || createEmptyDocument());
 
       tabManagerRef.current.openTab('chapter', chapterId, data.meta.title, workspace.path);
     }
@@ -387,8 +245,7 @@ function App() {
       if (currentChapterId === chapterId) {
         setCurrentChapterId(null);
         setCurrentDocumentData(null);
-        setBlocks([]);
-        setLayoutRows([]);
+        setDocumentContent(createEmptyDocument());
       }
     }
   };
@@ -440,8 +297,7 @@ function App() {
 
     if (tabState.tabs.length === 1) {
       setViewMode('welcome');
-      setBlocks([]);
-      setLayoutRows([]);
+      setDocumentContent(createEmptyDocument());
     }
   };
 
@@ -465,9 +321,8 @@ function App() {
       if (tab.resourceId !== 'new' && tab.resourceId !== fileState.currentFilePath) {
         const result = await window.electronAPI.fileOpenWithPath(tab.resourceId);
         if (result.success && result.content) {
-          blockManagerRef.current = BlockManager.fromMarkdown(result.content);
-          setBlocks(blockManagerRef.current.getBlocks());
-          setLayoutRows(blockManagerRef.current.getLayoutRows());
+          const content = createDocumentFromText(result.content);
+          setDocumentContent(content);
         }
       }
     }
@@ -504,8 +359,7 @@ function App() {
 
     tabManagerRef.current.closeAllTabs();
     setViewMode('welcome');
-    setBlocks([]);
-    setLayoutRows([]);
+    setDocumentContent(createEmptyDocument());
   };
 
   const handleTogglePin = (tabId: string) => {
@@ -584,18 +438,9 @@ function App() {
               onTogglePin={handleTogglePin}
             >
               <EditorView
-                blocks={blocks}
-                layoutRows={layoutRows}
-                editingBlockId={editingBlockId}
-                draggingBlockId={draggingBlockId}
-                emptyMessage="选择一个章节开始编辑"
-                onUpdateBlock={handleUpdateBlock}
-                onCreateSibling={handleCreateSibling}
-                onColumnResize={handleColumnResize}
-                onToggleEdit={handleToggleEdit}
-                onCreateNewBlock={handleCreateNewBlock}
-                onDragBlock={handleDragBlock}
-                onSetDraggingBlock={setDraggingBlockId}
+                initialContent={documentContent}
+                onContentChange={handleContentChange}
+                placeholder="选择一个章节开始编辑"
               />
             </WorkspaceView>
           </Content>
@@ -662,18 +507,9 @@ function App() {
             />
             <div style={{ flex: 1, overflow: 'auto' }}>
               <EditorView
-                blocks={blocks}
-                layoutRows={layoutRows}
-                editingBlockId={editingBlockId}
-                draggingBlockId={draggingBlockId}
-                emptyMessage="没有内容，请打开文件或创建新文档"
-                onUpdateBlock={handleUpdateBlock}
-                onCreateSibling={handleCreateSibling}
-                onColumnResize={handleColumnResize}
-                onToggleEdit={handleToggleEdit}
-                onCreateNewBlock={handleCreateNewBlock}
-                onDragBlock={handleDragBlock}
-                onSetDraggingBlock={setDraggingBlockId}
+                initialContent={documentContent}
+                onContentChange={handleContentChange}
+                placeholder="没有内容，请打开文件或创建新文档"
               />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useCallback, useState } from 'react';
+import React, { createContext, useContext, useRef, useCallback, useState, useEffect } from 'react';
 import { Editor as TiptapEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -35,8 +35,7 @@ export interface EditorSnapshot {
 interface EditorContextType {
   editor: TiptapEditor | null;
   isReady: boolean;
-  initEditor: (config?: EditorConfig) => void;
-  destroyEditor: () => void;
+  setContent: (content: object) => void;
   getSnapshot: () => EditorSnapshot | null;
   restoreFromSnapshot: (snapshot: EditorSnapshot) => void;
   focus: () => void;
@@ -89,50 +88,70 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
   onContentChange,
 }) => {
   const editorRef = useRef<TiptapEditor | null>(null);
+  const onContentChangeRef = useRef(onContentChange);
+  const [editor, setEditor] = useState<TiptapEditor | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  const initEditor = useCallback(
-    (config: EditorConfig = {}) => {
-      const finalConfig = { ...initialConfig, ...config };
+  useEffect(() => {
+    onContentChangeRef.current = onContentChange;
+  }, [onContentChange]);
 
-      if (editorRef.current) {
-        editorRef.current.destroy();
-      }
+  useEffect(() => {
+    const config = initialConfig || {};
+    const newEditor = new TiptapEditor({
+      extensions: getEditorExtensions(config),
+      content: config.content || { type: 'doc', content: [] },
+      editable: config.editable !== false,
+      onUpdate: ({ editor }) => {
+        if (onContentChangeRef.current) {
+          onContentChangeRef.current(editor.getJSON());
+        }
+      },
+    });
 
-      const editor = new TiptapEditor({
-        extensions: getEditorExtensions(finalConfig),
-        content: finalConfig.content || { type: 'doc', content: [] },
-        editable: finalConfig.editable !== false,
-        onUpdate: ({ editor }) => {
-          if (onContentChange) {
-            onContentChange(editor.getJSON());
-          }
-        },
-      });
+    editorRef.current = newEditor;
+    setEditor(newEditor);
+    setIsReady(true);
 
-      editorRef.current = editor;
-      setIsReady(true);
-    },
-    [initialConfig, onContentChange]
-  );
+    requestAnimationFrame(() => {
+      newEditor.commands.focus('end');
+    });
 
-  const destroyEditor = useCallback(() => {
-    if (editorRef.current) {
-      editorRef.current.destroy();
+    return () => {
+      newEditor.destroy();
       editorRef.current = null;
+      setEditor(null);
       setIsReady(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!editorRef.current || !initialConfig?.content) return;
+    const currentContent = JSON.stringify(editorRef.current.getJSON());
+    const newContent = JSON.stringify(initialConfig.content);
+    if (currentContent !== newContent) {
+      editorRef.current.commands.setContent(initialConfig.content);
+      requestAnimationFrame(() => {
+        editorRef.current?.commands.focus('end');
+      });
+    }
+  }, [initialConfig?.content]);
+
+  const setContent = useCallback((content: object) => {
+    if (editorRef.current) {
+      editorRef.current.commands.setContent(content);
     }
   }, []);
 
   const getSnapshot = useCallback((): EditorSnapshot | null => {
     if (!editorRef.current) return null;
 
-    const editor = editorRef.current;
+    const ed = editorRef.current;
     return {
-      content: editor.getJSON(),
+      content: ed.getJSON(),
       selection: {
-        from: editor.state.selection.from,
-        to: editor.state.selection.to,
+        from: ed.state.selection.from,
+        to: ed.state.selection.to,
       },
     };
   }, []);
@@ -140,11 +159,11 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
   const restoreFromSnapshot = useCallback((snapshot: EditorSnapshot) => {
     if (!editorRef.current) return;
 
-    const editor = editorRef.current;
-    editor.commands.setContent(snapshot.content);
+    const ed = editorRef.current;
+    ed.commands.setContent(snapshot.content);
 
     if (snapshot.selection) {
-      editor.commands.setTextSelection({
+      ed.commands.setTextSelection({
         from: snapshot.selection.from,
         to: snapshot.selection.to,
       });
@@ -158,10 +177,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
   }, []);
 
   const value: EditorContextType = {
-    editor: editorRef.current,
+    editor,
     isReady,
-    initEditor,
-    destroyEditor,
+    setContent,
     getSnapshot,
     restoreFromSnapshot,
     focus,

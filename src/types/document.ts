@@ -123,6 +123,8 @@ export interface AssetMeta {
   usedBy: string[];
 }
 
+import type { TiptapDocument } from './tiptap';
+
 /**
  * 文档数据结构
  * 存储在 .ud 文件中
@@ -134,8 +136,6 @@ export interface DocumentData<TMeta = DocumentMeta> {
   type: 'story' | MaterialType;
   /** 元数据 */
   meta: TMeta;
-  /** 块列表 */
-  blocks: import('./block').Block[];
-  /** 布局行 */
-  layoutRows: import('./block').LayoutRow[];
+  /** 文档内容（Tiptap 单一编辑器格式） */
+  content: TiptapDocument;
 }
