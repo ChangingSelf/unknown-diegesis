@@ -1,20 +1,44 @@
-import type { Block } from '@/types/block';
+import type { TiptapDocument, TiptapNode } from '@/types/tiptap';
 
-interface ExportableBlock {
-  type: string;
-  src?: string;
-  text?: string;
-}
+function nodeToText(node: TiptapNode): string {
+  if (!node.content || node.content.length === 0) {
+    return '';
+  }
 
-// Simple Word exporter for image blocks (text-based)
-export function exportWordFromBlocks(blocks: Block[] | ExportableBlock[]): string {
-  return blocks
-    .map(b => {
-      const eb = b as ExportableBlock;
-      if (b.type === 'image') return `[Image: ${eb.src}]`;
-      if (b.type === 'heading') return `Heading: ${eb.text ?? ''}`;
-      if (b.type === 'paragraph') return eb.text ?? '';
+  return node.content
+    .map(child => {
+      if (child.type === 'text') {
+        return child.text || '';
+      }
+
+      if (child.type === 'paragraph') {
+        const text = child.content ? child.content.map(nodeToText).join('') : '';
+        return text + '\n\n';
+      }
+
+      if (child.type === 'heading') {
+        const text = child.content ? child.content.map(nodeToText).join('') : '';
+        return `Heading: ${text}\n\n`;
+      }
+
+      if (child.type === 'image') {
+        const src = child.attrs?.src || '';
+        return `[Image: ${src}]\n\n`;
+      }
+
+      if (child.type === 'hardBreak') {
+        return '\n';
+      }
+
+      if (child.content && Array.isArray(child.content)) {
+        return child.content.map(nodeToText).join('');
+      }
+
       return '';
     })
-    .join('\n\n');
+    .join('');
+}
+
+export function exportWordFromTiptap(document: TiptapDocument): string {
+  return nodeToText(document).trim();
 }

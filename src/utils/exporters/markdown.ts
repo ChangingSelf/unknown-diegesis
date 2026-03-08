@@ -1,27 +1,46 @@
-import type { Block } from '@/types/block';
+import type { TiptapDocument, TiptapNode } from '@/types/tiptap';
 
-interface ExportableBlock {
-  type: string;
-  alt?: string;
-  src?: string;
-  text?: string;
-}
+function nodeToMarkdown(node: TiptapNode): string {
+  if (!node.content || node.content.length === 0) {
+    return '';
+  }
 
-// Simple Markdown exporter for image blocks
-export function exportMarkdownFromBlocks(blocks: Block[] | ExportableBlock[]): string {
-  return blocks
-    .map(b => {
-      if (b.type === 'image') {
-        const alt = (b as ExportableBlock).alt ?? '';
-        return `![${alt}](${(b as ExportableBlock).src})`;
+  return node.content
+    .map(child => {
+      if (child.type === 'text') {
+        return child.text || '';
       }
-      if (b.type === 'heading') {
-        return `# ${(b as ExportableBlock).text ?? ''}`;
+
+      if (child.type === 'paragraph') {
+        const text = child.content ? child.content.map(nodeToMarkdown).join('') : '';
+        return text + '\n\n';
       }
-      if (b.type === 'paragraph') {
-        return (b as ExportableBlock).text ?? '';
+
+      if (child.type === 'heading') {
+        const level = (child.attrs?.level as number) || 1;
+        const text = child.content ? child.content.map(nodeToMarkdown).join('') : '';
+        return `${'#'.repeat(level)} ${text}\n\n`;
       }
+
+      if (child.type === 'image') {
+        const src = child.attrs?.src || '';
+        const alt = child.attrs?.alt || '';
+        return `![${alt}](${src})\n\n`;
+      }
+
+      if (child.type === 'hardBreak') {
+        return '\n';
+      }
+
+      if (child.content && Array.isArray(child.content)) {
+        return child.content.map(nodeToMarkdown).join('');
+      }
+
       return '';
     })
-    .join('\n\n');
+    .join('');
+}
+
+export function exportMarkdownFromTiptap(document: TiptapDocument): string {
+  return nodeToMarkdown(document).trim();
 }
