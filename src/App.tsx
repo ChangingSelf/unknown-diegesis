@@ -407,6 +407,18 @@ function App() {
     await workspaceManagerRef.current.refreshWorkspace();
     const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
     if (updatedWorkspace) setWorkspace(updatedWorkspace);
+
+    if (currentChapterId === chapterId && currentDocumentData) {
+      setCurrentDocumentData({
+        ...currentDocumentData,
+        meta: { ...currentDocumentData.meta, title: newTitle },
+      });
+    }
+
+    const tab = tabState.tabs.find(t => t.resourceId === chapterId);
+    if (tab) {
+      tabManagerRef.current.updateTabTitle(tab.id, newTitle);
+    }
   };
 
   const handleMaterialSelect = (id: string) => console.log('Material:', id);
@@ -590,16 +602,6 @@ function App() {
                 onTitleChange={newTitle => {
                   if (currentChapterId && workspace) {
                     handleChapterRename(currentChapterId, newTitle);
-                    if (currentDocumentData) {
-                      setCurrentDocumentData({
-                        ...currentDocumentData,
-                        meta: { ...currentDocumentData.meta, title: newTitle },
-                      });
-                    }
-                    const tab = tabState.tabs.find(t => t.resourceId === currentChapterId);
-                    if (tab) {
-                      tabManagerRef.current.updateTabTitle(tab.id, newTitle);
-                    }
                   }
                 }}
               />
