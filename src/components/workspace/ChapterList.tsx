@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Button, List, Typography, Popconfirm, Tag, Tooltip } from 'antd';
+import React, { useState, useRef } from 'react';
+import { Button, List, Typography, Popconfirm, Tag, Tooltip, Input } from 'antd';
+import type { InputRef } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -18,6 +19,7 @@ interface ChapterListProps {
   onCreate: () => void;
   onDelete: (chapterId: string) => void;
   onReorder: (chapterIds: string[]) => void;
+  onRename: (chapterId: string, newTitle: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
@@ -33,9 +35,13 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   onCreate,
   onDelete,
   onReorder,
+  onRename,
 }) => {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const inputRef = useRef<InputRef>(null);
 
   const handleDragStart = (e: React.DragEvent, chapterId: string) => {
     setDraggedId(chapterId);
@@ -70,6 +76,30 @@ export const ChapterList: React.FC<ChapterListProps> = ({
 
     setDraggedId(null);
     setDragOverId(null);
+  };
+
+  const handleStartEdit = (e: React.MouseEvent, chapter: DocumentMeta) => {
+    e.stopPropagation();
+    setEditingId(chapter.id);
+    setEditingTitle(chapter.title);
+  };
+
+  const handleEditBlur = (chapterId: string) => {
+    const trimmedTitle = editingTitle.trim();
+    if (trimmedTitle) {
+      onRename(chapterId, trimmedTitle);
+    }
+    setEditingId(null);
+    setEditingTitle('');
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent, chapterId: string) => {
+    if (e.key === 'Enter') {
+      handleEditBlur(chapterId);
+    } else if (e.key === 'Escape') {
+      setEditingId(null);
+      setEditingTitle('');
+    }
   };
 
   const getStatusTag = (status: string) => {
@@ -113,7 +143,11 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                   onDragOver={e => handleDragOver(e, chapter.id)}
                   onDragEnd={handleDragEnd}
                   onDrop={e => handleDrop(e, chapter.id)}
-                  onClick={() => onSelect(chapter.id)}
+                  onClick={() => {
+                    if (editingId !== chapter.id) {
+                      onSelect(chapter.id);
+                    }
+                  }}
                   className={`
                     cursor-pointer transition-all duration-200 !px-3 !py-2
                     ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}
@@ -152,12 +186,27 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                     </Text>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Text
-                          strong={isSelected}
-                          className={`truncate ${isSelected ? '!text-blue-600' : '!text-gray-800'}`}
-                        >
-                          {chapter.title}
-                        </Text>
+                        {editingId === chapter.id ? (
+                          <Input
+                            ref={inputRef}
+                            value={editingTitle}
+                            onChange={e => setEditingTitle(e.target.value)}
+                            onBlur={() => handleEditBlur(chapter.id)}
+                            onKeyDown={e => handleEditKeyDown(e, chapter.id)}
+                            onClick={e => e.stopPropagation()}
+                            size="small"
+                            className="flex-1"
+                            autoFocus
+                          />
+                        ) : (
+                          <Text
+                            strong={isSelected}
+                            className={`truncate cursor-text ${isSelected ? '!text-blue-600' : '!text-gray-800'}`}
+                            onClick={e => handleStartEdit(e, chapter)}
+                          >
+                            {chapter.title}
+                          </Text>
+                        )}
                         {getStatusTag(chapter.status ?? 'draft')}
                       </div>
                       <Text type="secondary" className="text-xs">

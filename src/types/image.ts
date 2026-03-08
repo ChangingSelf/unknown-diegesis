@@ -13,3 +13,5 @@ export interface LayoutRow {
   kind: 'image-row';
   blocks: ImageBlockData[];
 }
+
+export type ImageBlockContent = ImageBlockData;

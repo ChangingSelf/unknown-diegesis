@@ -7,8 +7,10 @@ import {
   AppstoreOutlined,
 } from '@ant-design/icons';
 import { Workspace } from '@/types/workspace';
+import { TabState } from '@/types/tab';
 import { ChapterList } from './ChapterList';
 import { MaterialPanel } from './MaterialPanel';
+import { TabsBar } from '../tabs';
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -22,9 +24,18 @@ interface WorkspaceViewProps {
   onChapterCreate: () => void;
   onChapterDelete: (chapterId: string) => void;
   onChapterReorder: (chapterIds: string[]) => void;
+  onChapterRename: (chapterId: string, newTitle: string) => void;
   onMaterialSelect: (materialId: string) => void;
   onMaterialCreate: (type: string) => void;
   onMaterialDelete: (materialId: string) => void;
+  tabState: TabState;
+  onTabActivate: (tabId: string) => void;
+  onTabClose: (tabId: string) => void;
+  onTabReorder: (sourceId: string, targetId: string) => void;
+  onCloseOthers: (tabId: string) => void;
+  onCloseRight: (tabId: string) => void;
+  onCloseAll: () => void;
+  onTogglePin: (tabId: string) => void;
 }
 
 export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
@@ -36,14 +47,23 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onChapterCreate,
   onChapterDelete,
   onChapterReorder,
+  onChapterRename,
   onMaterialSelect,
   onMaterialCreate,
   onMaterialDelete,
+  tabState,
+  onTabActivate,
+  onTabClose,
+  onTabReorder,
+  onCloseOthers,
+  onCloseRight,
+  onCloseAll,
+  onTogglePin,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'chapters' | 'materials'>('chapters');
 
-  const tabItems = [
+  const siderTabItems = [
     {
       key: 'chapters',
       label: (
@@ -60,6 +80,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           onCreate={onChapterCreate}
           onDelete={onChapterDelete}
           onReorder={onChapterReorder}
+          onRename={onChapterRename}
         />
       ),
     },
@@ -93,7 +114,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         style={{ background: '#fff' }}
         theme="light"
       >
-        {/* 侧边栏头部 */}
         <div
           style={{
             display: 'flex',
@@ -134,18 +154,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
         {!collapsed && (
           <>
-            {/* Tab 内容 */}
             <div style={{ height: 'calc(100% - 120px)', overflow: 'hidden' }}>
               <Tabs
                 activeKey={activeTab}
                 onChange={key => setActiveTab(key as 'chapters' | 'materials')}
-                items={tabItems}
+                items={siderTabItems}
                 style={{ height: '100%' }}
                 size="small"
               />
             </div>
 
-            {/* 底部统计信息 */}
             <div
               style={{
                 padding: '12px 16px',
@@ -182,7 +200,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         )}
       </Sider>
 
-      {/* 中间编辑区 */}
       <Content
         style={{
           display: 'flex',
@@ -193,6 +210,17 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           borderRadius: 8,
         }}
       >
+        <TabsBar
+          tabs={tabState.tabs}
+          activeTabId={tabState.activeTabId}
+          onTabActivate={onTabActivate}
+          onTabClose={onTabClose}
+          onTabReorder={onTabReorder}
+          onCloseOthers={onCloseOthers}
+          onCloseRight={onCloseRight}
+          onCloseAll={onCloseAll}
+          onTogglePin={onTogglePin}
+        />
         <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
       </Content>
     </Layout>

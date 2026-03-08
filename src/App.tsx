@@ -401,6 +401,14 @@ function App() {
     if (updatedWorkspace) setWorkspace(updatedWorkspace);
   };
 
+  const handleChapterRename = async (chapterId: string, newTitle: string) => {
+    if (!workspace) return;
+    await storyServiceRef.current.updateMeta(workspace.path, chapterId, { title: newTitle });
+    await workspaceManagerRef.current.refreshWorkspace();
+    const updatedWorkspace = workspaceManagerRef.current.getWorkspace();
+    if (updatedWorkspace) setWorkspace(updatedWorkspace);
+  };
+
   const handleMaterialSelect = (id: string) => console.log('Material:', id);
   const handleMaterialCreate = (type: string) => console.log('Create:', type);
   const handleMaterialDelete = (id: string) => console.log('Delete:', id);
@@ -541,17 +549,6 @@ function App() {
               onCloseWorkspace={handleCloseWorkspace}
             />
           </Header>
-          <TabsBar
-            tabs={tabState.tabs}
-            activeTabId={tabState.activeTabId}
-            onTabActivate={handleTabActivate}
-            onTabClose={handleTabClose}
-            onTabReorder={handleTabReorder}
-            onCloseOthers={handleCloseOthers}
-            onCloseRight={handleCloseRight}
-            onCloseAll={handleCloseAll}
-            onTogglePin={handleTogglePin}
-          />
           <Content style={{ padding: 8, flex: 1, overflow: 'hidden' }}>
             <WorkspaceView
               workspace={workspace}
@@ -561,9 +558,18 @@ function App() {
               onChapterCreate={handleChapterCreate}
               onChapterDelete={handleChapterDelete}
               onChapterReorder={handleChapterReorder}
+              onChapterRename={handleChapterRename}
               onMaterialSelect={handleMaterialSelect}
               onMaterialCreate={handleMaterialCreate}
               onMaterialDelete={handleMaterialDelete}
+              tabState={tabState}
+              onTabActivate={handleTabActivate}
+              onTabClose={handleTabClose}
+              onTabReorder={handleTabReorder}
+              onCloseOthers={handleCloseOthers}
+              onCloseRight={handleCloseRight}
+              onCloseAll={handleCloseAll}
+              onTogglePin={handleTogglePin}
             >
               <EditorView
                 blocks={blocks}
@@ -581,6 +587,21 @@ function App() {
                 onCreateNewBlock={handleCreateNewBlock}
                 onDragBlock={handleDragBlock}
                 onSetDraggingBlock={setDraggingBlockId}
+                onTitleChange={newTitle => {
+                  if (currentChapterId && workspace) {
+                    handleChapterRename(currentChapterId, newTitle);
+                    if (currentDocumentData) {
+                      setCurrentDocumentData({
+                        ...currentDocumentData,
+                        meta: { ...currentDocumentData.meta, title: newTitle },
+                      });
+                    }
+                    const tab = tabState.tabs.find(t => t.resourceId === currentChapterId);
+                    if (tab) {
+                      tabManagerRef.current.updateTabTitle(tab.id, newTitle);
+                    }
+                  }
+                }}
               />
             </WorkspaceView>
           </Content>
@@ -624,36 +645,46 @@ function App() {
             onExportMarkdown={handleExportMarkdown}
           />
         </Header>
-        <TabsBar
-          tabs={tabState.tabs}
-          activeTabId={tabState.activeTabId}
-          onTabActivate={handleTabActivate}
-          onTabClose={handleTabClose}
-          onTabReorder={handleTabReorder}
-          onCloseOthers={handleCloseOthers}
-          onCloseRight={handleCloseRight}
-          onCloseAll={handleCloseAll}
-          onTogglePin={handleTogglePin}
-        />
         <Content style={{ padding: 8, flex: 1, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: '#fff', borderRadius: 8 }}>
-            <EditorView
-              blocks={blocks}
-              layoutRows={layoutRows}
-              editingBlockId={editingBlockId}
-              draggingBlockId={draggingBlockId}
-              title={fileServiceRef.current.getFileName()}
-              saveStatus={fileState.saveStatus}
-              lastSavedTime={fileState.lastSavedTime}
-              emptyMessage="没有内容，请打开文件或创建新文档"
-              onUpdateBlock={handleUpdateBlock}
-              onCreateSibling={handleCreateSibling}
-              onColumnResize={handleColumnResize}
-              onToggleEdit={handleToggleEdit}
-              onCreateNewBlock={handleCreateNewBlock}
-              onDragBlock={handleDragBlock}
-              onSetDraggingBlock={setDraggingBlockId}
+          <div
+            style={{
+              height: '100%',
+              background: '#fff',
+              borderRadius: 8,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <TabsBar
+              tabs={tabState.tabs}
+              activeTabId={tabState.activeTabId}
+              onTabActivate={handleTabActivate}
+              onTabClose={handleTabClose}
+              onTabReorder={handleTabReorder}
+              onCloseOthers={handleCloseOthers}
+              onCloseRight={handleCloseRight}
+              onCloseAll={handleCloseAll}
+              onTogglePin={handleTogglePin}
             />
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <EditorView
+                blocks={blocks}
+                layoutRows={layoutRows}
+                editingBlockId={editingBlockId}
+                draggingBlockId={draggingBlockId}
+                title={fileServiceRef.current.getFileName()}
+                saveStatus={fileState.saveStatus}
+                lastSavedTime={fileState.lastSavedTime}
+                emptyMessage="没有内容，请打开文件或创建新文档"
+                onUpdateBlock={handleUpdateBlock}
+                onCreateSibling={handleCreateSibling}
+                onColumnResize={handleColumnResize}
+                onToggleEdit={handleToggleEdit}
+                onCreateNewBlock={handleCreateNewBlock}
+                onDragBlock={handleDragBlock}
+                onSetDraggingBlock={setDraggingBlockId}
+              />
+            </div>
           </div>
         </Content>
       </Layout>
