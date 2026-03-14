@@ -278,7 +278,14 @@ function App() {
       if (editorContextRef.current?.hasState(chapterId)) {
         editorContextRef.current.restoreState(chapterId);
       } else {
-        setDocumentContent(data.content || createEmptyDocument());
+        // Use editor's setContent to actually update the editor, not just React state
+        if (editorContextRef.current?.editor) {
+          editorContextRef.current.editor.commands.setContent(
+            data.content || createEmptyDocument()
+          );
+        } else {
+          setDocumentContent(data.content || createEmptyDocument());
+        }
       }
 
       tabManagerRef.current.openTab('chapter', chapterId, data.meta.title, workspace.path);
@@ -410,7 +417,12 @@ function App() {
           const result = await window.electronAPI.fileOpenWithPath(tab.resourceId);
           if (result.success && result.content) {
             const content = createDocumentFromText(result.content);
-            setDocumentContent(content);
+            // Use editor's setContent to actually update the editor, not just React state
+            if (editorContextRef.current?.editor) {
+              editorContextRef.current.editor.commands.setContent(content);
+            } else {
+              setDocumentContent(content);
+            }
           }
         }
       }
