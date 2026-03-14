@@ -236,7 +236,7 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
 
       <div className={`image-container ${textAlign}`}>
         {src ? (
-          <div className="inline-block relative">
+          <div className="inline-block relative group">
             <img
               src={src}
               alt={alt || ''}
