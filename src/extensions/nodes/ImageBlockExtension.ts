@@ -55,6 +55,17 @@ export const ImageBlockExtension = Node.create({
           return { 'data-caption': attributes.caption };
         },
       },
+      width: {
+        default: null,
+        parseHTML: element => {
+          const wAttr = element.getAttribute('data-width');
+          return wAttr != null ? Number(wAttr) : null;
+        },
+        renderHTML: attributes => {
+          if (attributes.width == null) return {};
+          return { 'data-width': attributes.width };
+        },
+      },
       layout: {
         default: 'full',
         parseHTML: element => element.getAttribute('data-layout') || 'full',

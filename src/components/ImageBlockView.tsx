@@ -16,7 +16,10 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
   const [tempAlt, setTempAlt] = useState(node.attrs.alt || '');
   const [tempCaption, setTempCaption] = useState(node.attrs.caption || '');
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [customWidth, setCustomWidth] = useState<number | null>(node.attrs.width || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resizeStartRef = useRef<{ x: number; width: number } | null>(null);
 
   const id = node.attrs.id;
   const src = node.attrs.src;
@@ -87,6 +90,39 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
   const handleDelete = useCallback(() => {
     deleteNode();
   }, [deleteNode]);
+
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!customWidth && !imageSize?.width) return;
+
+      const startWidth = customWidth || imageSize?.width || 300;
+      resizeStartRef.current = { x: e.clientX, width: startWidth };
+      setIsResizing(true);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!resizeStartRef.current) return;
+        const deltaX = moveEvent.clientX - resizeStartRef.current.x;
+        const newWidth = Math.max(100, resizeStartRef.current.width + deltaX);
+        setCustomWidth(newWidth);
+      };
+
+      const handleMouseUp = () => {
+        setIsResizing(false);
+        if (resizeStartRef.current && customWidth !== null) {
+          updateAttributes({ width: customWidth });
+        }
+        resizeStartRef.current = null;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [customWidth, imageSize, updateAttributes]
+  );
 
   const layoutMenuItems: MenuProps['items'] = [
     {
@@ -200,11 +236,18 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
 
       <div className={`image-container ${textAlign}`}>
         {src ? (
-          <img
-            src={src}
-            alt={alt || ''}
-            className={`max-w-full h-auto ${layout === 'center' ? 'mx-auto' : ''}`}
-          />
+          <div className="inline-block relative">
+            <img
+              src={src}
+              alt={alt || ''}
+              className={`max-w-full h-auto ${layout === 'center' ? 'mx-auto' : ''} ${isResizing ? 'select-none' : ''}`}
+              style={customWidth ? { width: `${customWidth}px` } : undefined}
+            />
+            <div
+              className="absolute bottom-0 right-0 w-2 h-2 bg-gray-400 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
+              onMouseDown={handleResizeMouseDown}
+            />
+          </div>
         ) : (
           <div
             className="w-full h-32 bg-paper-100 rounded flex items-center justify-center text-charcoal-400 cursor-pointer"
