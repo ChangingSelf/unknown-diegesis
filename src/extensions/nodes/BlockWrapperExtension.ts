@@ -155,79 +155,29 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
 
         const blockWrapperPos = $from.before($from.depth - 1);
         const currentParagraph = $from.parent;
-        const textContent = currentParagraph.textContent;
-        const cursorPos = $from.parentOffset;
+        const parentContent = currentParagraph.content;
+        const splitPos = $from.parentOffset;
 
-        if (textContent.length === 0) {
-          const now = new Date().toISOString();
-          const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-          const newBlockWrapper = state.schema.nodes.blockWrapper.create(
-            {
-              id: generateId(),
-              blockType: 'paragraph',
-              created: now,
-              modified: now,
-            },
-            [state.schema.nodes.paragraph.create()]
-          );
-          const tr = state.tr.insert(blockWrapperPos + blockWrapperNode.nodeSize, newBlockWrapper);
-          const newPos = blockWrapperPos + blockWrapperNode.nodeSize + 2;
-          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
-          dispatch(tr);
-          return true;
+        const blockWrapperIndex = $from.index($from.depth - 2);
+        if (blockWrapperIndex === 0 && splitPos === 0) {
+          return false;
         }
 
-        const isAtEnd = $from.parentOffset === $from.parent.content.size;
-
-        if (isAtEnd) {
-          const now = new Date().toISOString();
-          const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-          const newBlockWrapper = state.schema.nodes.blockWrapper.create(
-            {
-              id: generateId(),
-              blockType: 'paragraph',
-              created: now,
-              modified: now,
-            },
-            [state.schema.nodes.paragraph.create()]
-          );
-
-          const tr = state.tr.insert(blockWrapperPos + blockWrapperNode.nodeSize, newBlockWrapper);
-          const newPos = blockWrapperPos + blockWrapperNode.nodeSize + 2;
-          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
-          dispatch(tr);
-          return true;
-        }
+        const leftFragment = parentContent.cut(0, splitPos);
+        const rightFragment = parentContent.cut(splitPos);
 
         const now = new Date().toISOString();
         const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        const parentContent = currentParagraph.content;
-        const splitPos = cursorPos;
-        const leftFragment = parentContent.cut(0, splitPos);
-        const rightFragment = parentContent.cut(splitPos);
 
         const paragraphBefore = state.schema.nodes.paragraph.create(undefined, leftFragment);
         const paragraphAfter = state.schema.nodes.paragraph.create(undefined, rightFragment);
 
         const blockWrapperBefore = state.schema.nodes.blockWrapper.create(
-          {
-            id: generateId(),
-            blockType: 'paragraph',
-            created: now,
-            modified: now,
-          },
+          { id: generateId(), blockType: 'paragraph', created: now, modified: now },
           [paragraphBefore]
         );
         const blockWrapperAfter = state.schema.nodes.blockWrapper.create(
-          {
-            id: generateId(),
-            blockType: 'paragraph',
-            created: now,
-            modified: now,
-          },
+          { id: generateId(), blockType: 'paragraph', created: now, modified: now },
           [paragraphAfter]
         );
 
@@ -240,7 +190,6 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
         const newCursorPos = afterPos + 2;
         tr.setSelection(TextSelection.near(tr.doc.resolve(newCursorPos)));
         dispatch(tr);
-
         return true;
       },
 
@@ -271,11 +220,7 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
 
         const { $from } = selection;
 
-        if (!selection.empty) {
-          return false;
-        }
-
-        if ($from.parentOffset > 0) {
+        if (!selection.empty || $from.parentOffset > 0) {
           return false;
         }
 
@@ -297,8 +242,6 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
         }
 
         const parent = $from.parent;
-        const isEmptyBlock = parent.content.size === 0;
-
         const blockWrapperPos = $from.before(blockWrapperDepth);
         const blockWrapperNode = $from.node(blockWrapperDepth);
         const parentNode = $from.node(blockWrapperDepth - 1);
@@ -321,31 +264,19 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
           prevParagraphEndPos += child.nodeSize;
         }
 
-        const currentParagraphContent = parent.content;
+        const tr = state.tr;
 
-        if (isEmptyBlock) {
-          const tr = state.tr.delete(blockWrapperPos, blockWrapperPos + blockWrapperNode.nodeSize);
-          tr.setSelection(TextSelection.near(tr.doc.resolve(prevParagraphEndPos)));
-          dispatch(tr);
-        } else {
-          const tr = state.tr;
-
-          if (prevParagraphEndPos < blockWrapperPos) {
-            tr.delete(prevParagraphEndPos, blockWrapperPos);
-          }
-
-          tr.insert(prevParagraphEndPos, currentParagraphContent);
-
-          const newPosAfterInsert = prevParagraphEndPos + currentParagraphContent.size;
-
-          const currentBlockWrapperSize = blockWrapperNode.nodeSize;
-          tr.delete(newPosAfterInsert, newPosAfterInsert + currentBlockWrapperSize);
-
-          tr.setSelection(TextSelection.near(tr.doc.resolve(prevParagraphEndPos)));
-
-          dispatch(tr);
+        if (prevParagraphEndPos < blockWrapperPos) {
+          tr.delete(prevParagraphEndPos, blockWrapperPos);
         }
 
+        tr.insert(prevParagraphEndPos, parent.content);
+
+        const newPosAfterInsert = prevParagraphEndPos + parent.content.size;
+        tr.delete(newPosAfterInsert, newPosAfterInsert + blockWrapperNode.nodeSize);
+
+        tr.setSelection(TextSelection.near(tr.doc.resolve(prevParagraphEndPos)));
+        dispatch(tr);
         return true;
       },
     };
