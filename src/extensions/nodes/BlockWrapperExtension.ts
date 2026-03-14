@@ -310,26 +310,39 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
         }
 
         const prevBlockWrapperNode = parentNode.child(prevBlockWrapperIndex);
-        const prevBlockContentEnd = prevBlockWrapperPos + prevBlockWrapperNode.content.size;
 
-        console.log('[Backspace] prevBlockWrapperPos:', prevBlockWrapperPos);
-        console.log('[Backspace] prevBlockWrapperNode.nodeSize:', prevBlockWrapperNode.nodeSize);
-        console.log(
-          '[Backspace] prevBlockWrapperNode.content.size:',
-          prevBlockWrapperNode.content.size
-        );
-        console.log('[Backspace] prevBlockContentEnd:', prevBlockContentEnd);
+        let prevParagraphEndPos = prevBlockWrapperPos + 1;
+        for (let i = 0; i < prevBlockWrapperNode.childCount; i++) {
+          const child = prevBlockWrapperNode.child(i);
+          if (child.type.name === 'paragraph' || child.type.name === 'heading') {
+            prevParagraphEndPos = prevBlockWrapperPos + 1 + child.content.size;
+            break;
+          }
+          prevParagraphEndPos += child.nodeSize;
+        }
+
+        const currentParagraphContent = parent.content;
 
         if (isEmptyBlock) {
           const tr = state.tr.delete(blockWrapperPos, blockWrapperPos + blockWrapperNode.nodeSize);
-          console.log('[Backspace] setting selection to:', prevBlockContentEnd);
-          tr.setSelection(TextSelection.near(tr.doc.resolve(prevBlockContentEnd)));
+          tr.setSelection(TextSelection.near(tr.doc.resolve(prevParagraphEndPos)));
           dispatch(tr);
         } else {
-          console.log('[Backspace] setting selection to:', prevBlockContentEnd);
-          const tr = state.tr.setSelection(
-            TextSelection.near(state.doc.resolve(prevBlockContentEnd))
-          );
+          const tr = state.tr;
+
+          if (prevParagraphEndPos < blockWrapperPos) {
+            tr.delete(prevParagraphEndPos, blockWrapperPos);
+          }
+
+          tr.insert(prevParagraphEndPos, currentParagraphContent);
+
+          const newPosAfterInsert = prevParagraphEndPos + currentParagraphContent.size;
+
+          const currentBlockWrapperSize = blockWrapperNode.nodeSize;
+          tr.delete(newPosAfterInsert, newPosAfterInsert + currentBlockWrapperSize);
+
+          tr.setSelection(TextSelection.near(tr.doc.resolve(prevParagraphEndPos)));
+
           dispatch(tr);
         }
 
