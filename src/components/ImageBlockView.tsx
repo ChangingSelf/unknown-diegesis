@@ -235,28 +235,32 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
 
       <div className={`image-container ${textAlign}`}>
         {src ? (
-          <div className="inline-block relative group">
+          <div className={`inline-block relative group ${selected ? 'selected' : ''}`}>
             <img
               src={src}
               alt={alt || ''}
               className={`max-w-full h-auto ${layout === 'center' ? 'mx-auto' : ''} ${isResizing ? 'select-none' : ''}`}
               style={customWidth ? { width: `${customWidth}px` } : undefined}
             />
-            <div
-              className="resize-handle"
-              style={{
-                position: 'absolute',
-                right: 0,
-                bottom: 0,
-                width: 16,
-                height: 16,
-                backgroundColor: '#3b82f6',
-                cursor: 'se-resize',
-                zIndex: 100,
-              }}
-              onMouseDown={handleResizeMouseDown}
-              title="拖拽调整宽度"
-            />
+            {selected && (
+              <div
+                className="resize-handle"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  bottom: 0,
+                  width: 12,
+                  height: 12,
+                  backgroundColor: '#3b82f6',
+                  border: '2px solid white',
+                  borderRadius: '2px',
+                  cursor: 'nwse-resize',
+                  transform: 'translate(50%, 50%)',
+                }}
+                onMouseDown={handleResizeMouseDown}
+                title="拖拽调整宽度"
+              />
+            )}
           </div>
         ) : (
           <div

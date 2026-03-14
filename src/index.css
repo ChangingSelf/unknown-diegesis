@@ -686,14 +686,20 @@ body {
   font-size: 12px !important;
 }
 
-/* ========================================
-   BLOCK SELECTION STYLES
-   ======================================== */
-
 .block-selected {
   background-color: rgba(20, 184, 166, 0.12);
   border-radius: 6px;
   transition: background-color 150ms ease;
+}
+
+.image-block.block-selected {
+  background-color: transparent !important;
+}
+
+.image-block .inline-block.selected img {
+  outline: 2px solid #14b8a6;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .block-selected:hover {
