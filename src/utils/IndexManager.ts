@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DocumentMeta, MaterialType } from '@/types/document';
 import {
   STORY_DIR,
@@ -133,6 +134,47 @@ export class IndexManager {
       return result?.success ?? false;
     } catch (error) {
       console.error(`Failed to save ${type} index:`, error);
+      return false;
+    }
+  }
+
+  async updateWithRollback(
+    workspacePath: string,
+    type: IndexType,
+    mutate: (idx: any) => void | Promise<void>
+  ): Promise<boolean> {
+    const createEmpty =
+      type === 'story'
+        ? createEmptyStoryIndex
+        : type === 'materials'
+          ? createEmptyMaterialsIndex
+          : createEmptyAssetsIndex;
+
+    const index = await this.loadIndex<any>(workspacePath, type, createEmpty as any);
+    const snapshot = JSON.parse(JSON.stringify(index));
+
+    try {
+      const result = mutate(index);
+      if (result && typeof (result as any).then === 'function') {
+        await result;
+      }
+
+      // Persist updated index
+      const saved = await this.saveIndex(workspacePath, type, index);
+      if (!saved) {
+        throw new Error('Failed to save updated index');
+      }
+
+      // Successful update
+      return true;
+    } catch (error) {
+      console.error(`updateWithRollback: failed updating ${type}, attempting rollback:`, error);
+      try {
+        await this.saveIndex(workspacePath, type, snapshot);
+        console.info(`updateWithRollback: rolled back ${type} index to previous state`);
+      } catch (rollbackError) {
+        console.error(`updateWithRollback: rollback failed for ${type} index:`, rollbackError);
+      }
       return false;
     }
   }

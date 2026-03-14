@@ -1,8 +1,12 @@
 import { DocumentMeta, DocumentData } from '@/types/document';
+import { BackupManager } from '@/utils/migration/BackupManager';
 import { TiptapDocument, createEmptyDocument } from '@/types/tiptap';
 import { IndexManager } from '@/utils/IndexManager';
 import { generateDocumentFileName } from '@/utils/FileNaming';
 import { countDocumentWords } from '@/utils/wordCount';
+import { safeStringify } from '@/utils/SafeJSON';
+import { AtomicFileWriter } from '@/utils/AtomicFileWriter';
+import { SaveLock } from '@/utils/SaveLock';
 
 export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentMeta> {
   protected indexManager: IndexManager;
@@ -186,15 +190,35 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
     data: {
       meta: TMeta;
       content: TiptapDocument;
-    }
+    },
+    skipBackup?: boolean
   ): Promise<boolean> {
     const api = window.electronAPI;
     if (!api?.workspaceWriteFile) {
       return false;
     }
 
+    const filePath = `${workspacePath}/${data.meta.path}`;
+    const releaseLock = await SaveLock.acquire(filePath);
     try {
-      const filePath = `${workspacePath}/${data.meta.path}`;
+      // Validate inputs explicitly
+      if (!data?.meta || data?.content == null) {
+        console.error('Invalid save payload: missing meta or content');
+        return false;
+      }
+
+      // Execute backup at the start unless explicitly skipped
+      if (!skipBackup) {
+        try {
+          // Backup current file before applying changes. Failures should not block saving.
+          const backupMgr = new BackupManager();
+          await backupMgr.createBackup(filePath, Date.now());
+        } catch (backupError) {
+          // Do not block the save operation on backup failure
+          console.warn('Backup creation failed during save:', backupError);
+        }
+      }
+
       const wordCount = countDocumentWords(data.content);
 
       const documentData: DocumentData<TMeta> = {
@@ -213,28 +237,41 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
         content: data.content,
       };
 
-      const content = JSON.stringify(documentData, null, 2);
-      const result = await api.workspaceWriteFile(filePath, content);
+      // Serialize safely
+      const serialized = safeStringify(documentData);
+      if (!serialized.success || !serialized.data) {
+        console.error('Failed to serialize document data for save:', serialized.error);
+        return false;
+      }
+      const content = serialized.data;
 
-      if (result?.success) {
-        if (this.getIndexType() === 'story') {
-          await this.indexManager.updateStoryDocument(
-            workspacePath,
-            documentData.meta as DocumentMeta
-          );
-        } else {
-          await this.indexManager.updateMaterialsDocument(
-            workspacePath,
-            documentData.meta as DocumentMeta
-          );
-        }
-        return true;
+      // Atomic write
+      const writeResult = await AtomicFileWriter.writeFileAtomic(filePath, content);
+      if (!writeResult?.success) {
+        console.error('Atomic write failed during save:', writeResult?.error);
+        return false;
       }
 
-      return false;
+      // Update index after successful write
+      if (this.getIndexType() === 'story') {
+        await this.indexManager.updateStoryDocument(
+          workspacePath,
+          documentData.meta as DocumentMeta
+        );
+      } else {
+        await this.indexManager.updateMaterialsDocument(
+          workspacePath,
+          documentData.meta as DocumentMeta
+        );
+      }
+
+      return true;
     } catch (error) {
       console.error('Failed to save document:', error);
       return false;
+    } finally {
+      // Release the save lock regardless of outcome
+      releaseLock();
     }
   }
 
