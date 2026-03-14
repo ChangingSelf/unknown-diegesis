@@ -101,30 +101,37 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
 
   useEffect(() => {
     const config = initialConfig || {};
-    const newEditor = new TiptapEditor({
-      extensions: getEditorExtensions(config),
-      content: config.content || { type: 'doc', content: [] },
-      editable: config.editable !== false,
-      onUpdate: ({ editor }) => {
-        if (onContentChangeRef.current) {
-          onContentChangeRef.current(editor.getJSON());
-        }
-      },
-    });
 
-    editorRef.current = newEditor;
-    setEditor(newEditor);
-    setIsReady(true);
+    // Defer editor creation to avoid flushSync warning during React rendering lifecycle
+    const timerId = setTimeout(() => {
+      const newEditor = new TiptapEditor({
+        extensions: getEditorExtensions(config),
+        content: config.content || { type: 'doc', content: [] },
+        editable: config.editable !== false,
+        onUpdate: ({ editor }) => {
+          if (onContentChangeRef.current) {
+            onContentChangeRef.current(editor.getJSON());
+          }
+        },
+      });
 
-    requestAnimationFrame(() => {
-      newEditor.commands.focus('end');
-    });
+      editorRef.current = newEditor;
+      setEditor(newEditor);
+      setIsReady(true);
+
+      requestAnimationFrame(() => {
+        newEditor.commands.focus('end');
+      });
+    }, 0);
 
     return () => {
-      newEditor.destroy();
-      editorRef.current = null;
-      setEditor(null);
-      setIsReady(false);
+      clearTimeout(timerId);
+      if (editorRef.current) {
+        editorRef.current.destroy();
+        editorRef.current = null;
+        setEditor(null);
+        setIsReady(false);
+      }
     };
   }, []);
 

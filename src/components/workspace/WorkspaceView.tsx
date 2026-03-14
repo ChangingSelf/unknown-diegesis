@@ -181,7 +181,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       </Text>
                     }
                     value={workspace.project.statistics.wordCount}
-                    valueStyle={{ fontSize: 14, color: '#1890ff' }}
+                    styles={{ content: { fontSize: 14, color: '#1890ff' } }}
                   />
                 </Col>
                 <Col span={12}>
@@ -192,7 +192,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                       </Text>
                     }
                     value={workspace.materials.length}
-                    valueStyle={{ fontSize: 14, color: '#52c41a' }}
+                    styles={{ content: { fontSize: 14, color: '#52c41a' } }}
                   />
                 </Col>
               </Row>

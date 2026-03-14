@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Button, List, Typography, Tag, Tooltip, Input, Dropdown } from 'antd';
+import { Button, Typography, Tag, Tooltip, Input, Dropdown } from 'antd';
 import type { InputRef } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -174,9 +174,8 @@ export const ChapterList: React.FC<ChapterListProps> = ({
             </Text>
           </div>
         ) : (
-          <List
-            dataSource={chapters}
-            renderItem={chapter => {
+          <div className="space-y-1">
+            {chapters.map(chapter => {
               const isSelected = currentChapterId === chapter.id;
               const isDragOver = dragOverId === chapter.id;
 
@@ -191,7 +190,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                     }
                   }}
                 >
-                  <List.Item
+                  <div
                     draggable
                     onDragStart={e => handleDragStart(e, chapter.id)}
                     onDragOver={e => handleDragOver(e, chapter.id)}
@@ -204,25 +203,10 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                       }
                     }}
                     className={`
-                      cursor-pointer transition-all duration-200 !px-3 !py-2
+                      flex items-center justify-between px-3 py-2 cursor-pointer transition-all duration-200 rounded
                       ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}
                       ${isDragOver ? 'border-t-2 border-t-blue-400 bg-blue-50/50' : ''}
                     `}
-                    actions={[
-                      <Tooltip key="delete" title="删除章节">
-                        <Button
-                          type="text"
-                          danger
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={e => {
-                            e.stopPropagation();
-                            onDelete(chapter.id);
-                          }}
-                          className="opacity-0 group-hover:opacity-100"
-                        />
-                      </Tooltip>,
-                    ]}
                   >
                     <div className="flex items-center gap-2 w-full group">
                       <HolderOutlined className="text-gray-300 cursor-grab" />
@@ -259,11 +243,24 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                         </Text>
                       </div>
                     </div>
-                  </List.Item>
+                    <Tooltip title="删除章节">
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={e => {
+                          e.stopPropagation();
+                          onDelete(chapter.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </Tooltip>
+                  </div>
                 </Dropdown>
               );
-            }}
-          />
+            })}
+          </div>
         )}
       </div>
     </div>

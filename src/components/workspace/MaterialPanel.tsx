@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Input, Collapse, List, Button, Popconfirm, Typography, Badge, Tag, Tooltip } from 'antd';
+import { Input, Collapse, Button, Popconfirm, Typography, Badge, Tag, Tooltip } from 'antd';
 import {
   UserOutlined,
   EnvironmentOutlined,
@@ -110,42 +110,17 @@ export const MaterialPanel: React.FC<MaterialPanelProps> = ({
       ),
       children:
         typeMaterials.length > 0 ? (
-          <List
-            size="small"
-            dataSource={typeMaterials}
-            renderItem={material => {
+          <div className="space-y-1">
+            {typeMaterials.map(material => {
               const isSelected = currentMaterialId === material.id;
               return (
-                <List.Item
+                <div
+                  key={material.id}
                   onClick={() => onSelect(material.id)}
                   className={`
-                    cursor-pointer transition-all duration-200 !px-2 !py-1.5
+                    flex items-center justify-between px-2 py-1.5 cursor-pointer transition-all duration-200 rounded
                     ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50 border-l-2 border-l-transparent'}
                   `}
-                  actions={[
-                    <Tooltip key="delete" title="删除">
-                      <Popconfirm
-                        title="确定删除此资料？"
-                        onConfirm={e => {
-                          e?.stopPropagation();
-                          onDelete(material.id);
-                        }}
-                        onCancel={e => e?.stopPropagation()}
-                        okText="删除"
-                        okButtonProps={{ danger: true }}
-                        cancelText="取消"
-                      >
-                        <Button
-                          type="text"
-                          danger
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={e => e.stopPropagation()}
-                          className="opacity-0 group-hover:opacity-100"
-                        />
-                      </Popconfirm>
-                    </Tooltip>,
-                  ]}
                 >
                   <div className="flex items-center gap-2 w-full group">
                     <Text
@@ -156,10 +131,32 @@ export const MaterialPanel: React.FC<MaterialPanelProps> = ({
                       {material.title}
                     </Text>
                   </div>
-                </List.Item>
+                  <Tooltip title="删除">
+                    <Popconfirm
+                      title="确定删除此资料？"
+                      onConfirm={e => {
+                        e?.stopPropagation();
+                        onDelete(material.id);
+                      }}
+                      onCancel={e => e?.stopPropagation()}
+                      okText="删除"
+                      okButtonProps={{ danger: true }}
+                      cancelText="取消"
+                    >
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={e => e.stopPropagation()}
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </Popconfirm>
+                  </Tooltip>
+                </div>
               );
-            }}
-          />
+            })}
+          </div>
         ) : (
           <div className="text-center text-gray-400 py-6 text-sm">
             <span className="text-2xl mb-2 block opacity-50">{config.icon}</span>
