@@ -26,6 +26,7 @@ export interface TopBarProps {
   onNew?: () => void;
   onCloseWorkspace?: () => void;
   onExportMarkdown?: () => void;
+  onExportWord?: () => void;
 }
 
 const SaveStatusIndicator: React.FC<{
@@ -97,6 +98,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onNew,
   onCloseWorkspace,
   onExportMarkdown,
+  onExportWord,
 }) => {
   const centerTitle =
     title ??
@@ -133,6 +135,11 @@ export const TopBar: React.FC<TopBarProps> = ({
               导出 MD
             </Button>
           )}
+          {onExportWord && (
+            <Button icon={<ExportOutlined />} onClick={onExportWord}>
+              导出 Word
+            </Button>
+          )}
           {onNew && (
             <Button icon={<FileAddOutlined />} onClick={onNew}>
               新建
@@ -163,6 +170,11 @@ export const TopBar: React.FC<TopBarProps> = ({
           {onExportMarkdown && (
             <Button icon={<ExportOutlined />} onClick={onExportMarkdown}>
               导出 MD
+            </Button>
+          )}
+          {onExportWord && (
+            <Button icon={<ExportOutlined />} onClick={onExportWord}>
+              导出 Word
             </Button>
           )}
           {onNew && (

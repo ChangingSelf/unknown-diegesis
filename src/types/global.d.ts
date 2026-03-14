@@ -34,6 +34,21 @@ declare global {
         path?: string;
         error?: string;
       }>;
+      fileExists: (path: string) => Promise<{ exists: boolean }>;
+      fileStat: (path: string) => Promise<{
+        success: boolean;
+        mtime?: string;
+        size?: number;
+        error?: string;
+      }>;
+      fileExportWord: (
+        document: unknown,
+        title?: string
+      ) => Promise<{
+        success: boolean;
+        path?: string;
+        error?: string;
+      }>;
       fileExportMarkdownWithAssets: (
         content: string,
         images: Array<{ originalPath: string; fileName: string }>
@@ -41,13 +56,6 @@ declare global {
         success: boolean;
         path?: string;
         assetsDir?: string;
-        error?: string;
-      }>;
-      fileExists: (path: string) => Promise<{ exists: boolean }>;
-      fileStat: (path: string) => Promise<{
-        success: boolean;
-        mtime?: string;
-        size?: number;
         error?: string;
       }>;
       workspaceOpen: () => Promise<{
@@ -97,7 +105,8 @@ declare global {
       }>;
       workspaceWriteFile: (
         filePath: string,
-        content: string
+        content: string,
+        isBase64?: boolean
       ) => Promise<{
         success: boolean;
         error?: string;

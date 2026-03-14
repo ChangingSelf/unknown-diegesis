@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ) => ipcRenderer.invoke('file:exportMarkdownWithAssets', { content, images }),
   fileExists: (path: string) => ipcRenderer.invoke('file:exists', { path }),
   fileStat: (path: string) => ipcRenderer.invoke('file:stat', { path }),
+  fileExportWord: (document: unknown, title?: string) =>
+    ipcRenderer.invoke('file:exportWord', { document, title }),
 
   // 工作区操作 API
   workspaceOpen: () => ipcRenderer.invoke('workspace:open'),
@@ -27,8 +29,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   workspaceCopyFile: (source: string, destination: string) =>
     ipcRenderer.invoke('workspace:copyFile', { source, destination }),
   workspaceReadFile: (filePath: string) => ipcRenderer.invoke('workspace:readFile', { filePath }),
-  workspaceWriteFile: (filePath: string, content: string) =>
-    ipcRenderer.invoke('workspace:writeFile', { filePath, content }),
+  workspaceWriteFile: (filePath: string, content: string, isBase64?: boolean) =>
+    ipcRenderer.invoke('workspace:writeFile', { filePath, content, isBase64 }),
   prompt: (message: string, defaultValue?: string) =>
     ipcRenderer.invoke('prompt', { message, defaultValue }),
 
@@ -70,6 +72,10 @@ declare global {
       fileStat: (
         path: string
       ) => Promise<{ success: boolean; mtime?: string; size?: number; error?: string }>;
+      fileExportWord: (
+        document: unknown,
+        title?: string
+      ) => Promise<{ success: boolean; path?: string; error?: string }>;
       // 工作区操作
       workspaceOpen: () => Promise<{ success: boolean; path?: string; error?: string }>;
       workspaceCreate: (
@@ -94,7 +100,8 @@ declare global {
       ) => Promise<{ success: boolean; content?: string; error?: string }>;
       workspaceWriteFile: (
         filePath: string,
-        content: string
+        content: string,
+        isBase64?: boolean
       ) => Promise<{
         success: boolean;
         error?: string;

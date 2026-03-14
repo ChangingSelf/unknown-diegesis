@@ -167,6 +167,17 @@ function App() {
     }
   };
 
+  const handleExportWord = async () => {
+    const activeTab = tabState.tabs.find(t => t.id === tabState.activeTabId);
+    const title = activeTab?.title || fileServiceRef.current.getFileName() || 'document';
+    const result = await window.electronAPI.fileExportWord(documentContent, title);
+    if (result.success) {
+      message.success('导出成功');
+    } else if (result.error && result.error !== 'User canceled') {
+      message.error('导出失败: ' + result.error);
+    }
+  };
+
   const handleNew = () => {
     setDocumentContent(createEmptyDocument());
     fileServiceRef.current.createNewFile();
@@ -526,6 +537,7 @@ function App() {
               lastSavedTime={null}
               onSave={handleSave}
               onExportMarkdown={handleExportMarkdown}
+              onExportWord={handleExportWord}
               onCloseWorkspace={handleCloseWorkspace}
             />
           </Header>
@@ -556,6 +568,7 @@ function App() {
                 onContentChange={handleContentChange}
                 placeholder="选择一个章节开始编辑"
                 onContextReady={handleEditorContextReady}
+                workspacePath={workspace?.path}
               />
             </WorkspaceView>
           </Content>
@@ -597,6 +610,7 @@ function App() {
             onOpen={handleOpen}
             onSave={handleSave}
             onExportMarkdown={handleExportMarkdown}
+            onExportWord={handleExportWord}
           />
         </Header>
         <Content style={{ padding: 8, flex: 1, overflow: 'hidden' }}>
@@ -626,6 +640,7 @@ function App() {
                 onContentChange={handleContentChange}
                 placeholder="没有内容，请打开文件或创建新文档"
                 onContextReady={handleEditorContextReady}
+                workspacePath={workspace?.path}
               />
             </div>
           </div>

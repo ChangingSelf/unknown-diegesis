@@ -1,8 +1,9 @@
 import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { readFile, writeFile, stat, mkdir, readdir, rm, rename, copyFile } from 'fs/promises';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync, copyFileSync } from 'fs';
 import { randomUUID } from 'crypto';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { WORKSPACE_SCHEMA_VERSION, INDEX_SCHEMA_VERSION } from '../src/constants/versions';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -264,7 +265,10 @@ function registerFileHandlers() {
   // 写入文件内容
   ipcMain.handle(
     'workspace:writeFile',
-    async (_, { filePath, content }: { filePath: string; content: string }) => {
+    async (
+      _,
+      { filePath, content, isBase64 }: { filePath: string; content: string; isBase64?: boolean }
+    ) => {
       try {
         const normalizedPath = normalizePath(filePath);
         const parentDir = join(normalizedPath, '..');
@@ -273,7 +277,13 @@ function registerFileHandlers() {
           await mkdir(parentDir, { recursive: true });
         }
 
-        await writeFile(normalizedPath, content, 'utf-8');
+        // 如果 content 是 Base64 编码，先解码为二进制
+        let writeContent: Buffer | string = content;
+        if (isBase64) {
+          writeContent = Buffer.from(content, 'base64');
+        }
+
+        await writeFile(normalizedPath, writeContent);
         return { success: true };
       } catch (error) {
         console.error('Error writing file:', error);
@@ -333,7 +343,7 @@ function registerFileHandlers() {
     }
   });
 
-  // 带附件的 Markdown 导出
+  // 导出 Markdown 并复制图片资源
   ipcMain.handle(
     'file:exportMarkdownWithAssets',
     async (
@@ -341,36 +351,41 @@ function registerFileHandlers() {
       {
         content,
         images,
-      }: {
-        content: string;
-        images: Array<{ originalPath: string; fileName: string }>;
-      }
+      }: { content: string; images: Array<{ originalPath: string; fileName: string }> }
     ) => {
       try {
         const result = await dialog.showSaveDialog({
           filters: [{ name: 'Markdown', extensions: ['md'] }],
-          defaultPath: 'document.md',
         });
 
         if (result.canceled || !result.filePath) {
           return { success: false, error: 'User canceled' };
         }
 
-        const markdownPath = result.filePath;
-        const assetsDir = join(markdownPath.replace(/\.md$/i, '') + '_assets');
+        const exportDir = dirname(result.filePath);
+        const assetsDir = join(exportDir, 'assets');
 
-        await mkdir(assetsDir, { recursive: true });
-
-        for (const img of images) {
-          const destPath = join(assetsDir, img.fileName);
-          await copyFile(img.originalPath, destPath);
+        // 创建 assets 目录
+        if (!existsSync(assetsDir)) {
+          mkdirSync(assetsDir, { recursive: true });
         }
 
-        await writeFile(markdownPath, content, 'utf-8');
+        // 复制图片文件
+        for (const image of images) {
+          const sourcePath = image.originalPath;
+          const destPath = join(assetsDir, image.fileName);
+
+          if (existsSync(sourcePath)) {
+            copyFileSync(sourcePath, destPath);
+          }
+        }
+
+        // 写入 Markdown 文件
+        await writeFile(result.filePath, content, 'utf-8');
 
         return {
           success: true,
-          path: markdownPath,
+          path: result.filePath,
           assetsDir,
         };
       } catch (error) {
@@ -408,6 +423,45 @@ function registerFileHandlers() {
       };
     }
   });
+
+  // 导出 Word 文档
+  ipcMain.handle(
+    'file:exportWord',
+    async (_, { document, title }: { document: unknown; title?: string }) => {
+      console.log('[ExportWord] Starting export, title:', title);
+      try {
+        const result = await dialog.showSaveDialog({
+          filters: [{ name: 'Word 文档', extensions: ['docx'] }],
+          defaultPath: `${title || 'document'}.docx`,
+        });
+
+        console.log('[ExportWord] Dialog result:', result);
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, error: 'User canceled' };
+        }
+
+        console.log('[ExportWord] Converting document...');
+        const doc = convertTiptapToDocx(document as TiptapDocument);
+        console.log('[ExportWord] Generating buffer...');
+        const buffer = await Packer.toBuffer(doc);
+        console.log('[ExportWord] Writing file...');
+        await writeFile(result.filePath, buffer);
+        console.log('[ExportWord] Done!');
+
+        return {
+          success: true,
+          path: result.filePath,
+        };
+      } catch (error) {
+        console.error('[ExportWord] Error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }
+  );
 
   // Prompt 对话框 - 选择文件夹
   ipcMain.handle(
@@ -533,3 +587,381 @@ app.on('web-contents-created', (_, contents) => {
     return { action: 'deny' };
   });
 });
+
+function convertColorToHex(color: string): string | undefined {
+  if (!color) return undefined;
+
+  if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+    return color.substring(1);
+  }
+
+  const rgbMatch = color.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1], 10);
+    const g = parseInt(rgbMatch[2], 10);
+    const b = parseInt(rgbMatch[3], 10);
+    return `${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+
+  const colorNames: Record<string, string> = {
+    black: '000000',
+    white: 'FFFFFF',
+    red: 'FF0000',
+    green: '008000',
+    blue: '0000FF',
+    yellow: 'FFFF00',
+    cyan: '00FFFF',
+    magenta: 'FF00FF',
+    gray: '808080',
+    grey: '808080',
+    orange: 'FFA500',
+    purple: '800080',
+    pink: 'FFC0CB',
+    brown: 'A52A2A',
+    navy: '000080',
+    teal: '008080',
+    olive: '808000',
+    maroon: '800000',
+    silver: 'C0C0C0',
+    lime: '00FF00',
+    aqua: '00FFFF',
+    fuchsia: 'FF00FF',
+    indigo: '4B0082',
+    gold: 'FFD700',
+    violet: 'EE82EE',
+    skyblue: '87CEEB',
+    coral: 'FF7F50',
+    tomato: 'FF6347',
+    salmon: 'FA8072',
+    peachpuff: 'FFDAB9',
+    wheat: 'F5DEB3',
+    tan: 'D2B48C',
+    chocolate: 'D2691E',
+    crimson: 'DC143C',
+    deeppink: 'FF1493',
+    hotpink: 'FF69B4',
+    lavender: 'E6E6FA',
+    plum: 'DDA0DD',
+    orchid: 'DA70D6',
+    violet2: 'EE82EE',
+    cornflowerblue: '6495ED',
+    dodgerblue: '1E90FF',
+    steelblue: '4682B4',
+    royalblue: '4169E1',
+    midnightblue: '191970',
+    darkslateblue: '483D8B',
+    slateblue: '6A5ACD',
+    mediumslateblue: '7B68EE',
+    mediumpurple: '9370DB',
+    mediumorchid: 'BA55D3',
+    mediumvioletred: 'C71585',
+    deepskyblue: '00BFFF',
+    lightskyblue: '87CEFA',
+    lightblue: 'ADD8E6',
+    lightcyan: 'E0FFFF',
+    paleturquoise: 'AFEEEE',
+    turquoise: '40E0D0',
+    mediumturquoise: '48D1CC',
+    darkturquoise: '00CED1',
+    cadetblue: '5F9EA0',
+    darkcyan: '008B8B',
+    darkmagenta: '8B008B',
+    darkred: '8B0000',
+    darkgreen: '006400',
+    darkblue: '00008B',
+    darkorange: 'FF8C00',
+    darkviolet: '9400D3',
+    palevioletred: 'DB7093',
+    sandybrown: 'F4A460',
+    rosybrown: 'BC8F8F',
+    mediumaquamarine: '66CDAA',
+    darkseagreen: '8FBC8F',
+    lightseagreen: '20B2AA',
+    darkgray: 'A9A9A9',
+    darkgrey: 'A9A9A9',
+    lightgray: 'D3D3D3',
+    lightgrey: 'D3D3D3',
+    gainsboro: 'DCDCEC',
+    whitesmoke: 'F5F5F5',
+    mintcream: 'F5FFFA',
+    ghostwhite: 'F8F8FF',
+    lavenderblush: 'FFF0F5',
+    mistyrose: 'FFE4E1',
+    antiquewhite: 'FAEBD7',
+    linen: 'FAF0E6',
+    oldlace: 'FDF5E6',
+    floralwhite: 'FFFAF0',
+    ivory: 'FFFFF0',
+    honeydew: 'F0FFF0',
+    azure: 'F0FFFF',
+    orangered: 'FF4500',
+    firebrick: 'B22222',
+    limegreen: '32CD32',
+    seagreen: '2E8B57',
+    burlywood: 'DEB887',
+    sienna: 'A0522D',
+  };
+
+  const lowerColor = color.toLowerCase();
+  if (colorNames[lowerColor]) {
+    return colorNames[lowerColor];
+  }
+
+  return undefined;
+}
+
+// 类型定义
+interface TiptapNode {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: TiptapNode[];
+  text?: string;
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>;
+}
+
+interface TiptapDocument {
+  type: string;
+  content?: TiptapNode[];
+}
+
+// 转换函数
+function convertTiptapToDocx(document: TiptapDocument): Document {
+  if (!document.content || document.content.length === 0) {
+    return new Document({
+      sections: [
+        {
+          properties: {},
+          children: [new Paragraph({})],
+        },
+      ],
+    });
+  }
+
+  const children: Paragraph[] = [];
+
+  for (const node of document.content) {
+    const paragraphs = convertNodeToParagraphs(node);
+    children.push(...paragraphs);
+  }
+
+  return new Document({
+    sections: [
+      {
+        properties: {},
+        children,
+      },
+    ],
+  });
+}
+
+function convertNodeToParagraphs(node: TiptapNode): Paragraph[] {
+  switch (node.type) {
+    case 'blockWrapper':
+      return convertBlockWrapperToParagraphs(node);
+    case 'diceBlock':
+      return convertDiceBlockToParagraphs(node);
+    case 'imageBlock':
+      return convertImageBlockToParagraphs(node);
+    case 'layoutRow':
+      return convertLayoutRowToParagraphs(node);
+    case 'paragraph':
+      return convertParagraphToParagraphs(node);
+    case 'heading':
+      return convertHeadingToParagraphs(node);
+    case 'blockquote':
+      return convertBlockquoteToParagraphs(node);
+    case 'bulletList':
+    case 'orderedList':
+      return convertListToParagraphs(node);
+    case 'horizontalRule':
+      return [new Paragraph({ children: [new TextRun({ text: '' })] })];
+    default:
+      return convertGenericNodeToParagraphs(node);
+  }
+}
+
+function convertBlockWrapperToParagraphs(node: TiptapNode): Paragraph[] {
+  if (!node.content || node.content.length === 0) {
+    return [];
+  }
+  const paragraphs: Paragraph[] = [];
+  for (const child of node.content) {
+    const childParagraphs = convertNodeToParagraphs(child);
+    paragraphs.push(...childParagraphs);
+  }
+  return paragraphs;
+}
+
+function convertDiceBlockToParagraphs(node: TiptapNode): Paragraph[] {
+  const attrs = node.attrs || {};
+  const formula = String(attrs.formula || '1d20');
+  const result = attrs.result;
+  let text = `【${formula}`;
+  if (result !== null && result !== undefined) {
+    text += `=${result}`;
+  }
+  text += '】';
+  return [new Paragraph({ children: [new TextRun({ text, bold: true })] })];
+}
+
+function convertImageBlockToParagraphs(node: TiptapNode): Paragraph[] {
+  const attrs = node.attrs || {};
+  const src = String(attrs.src || '');
+  const alt = attrs.alt ? String(attrs.alt) : '';
+  if (!src) {
+    return [];
+  }
+  const fileName = src.split(/[/\\]/).pop() || 'image';
+  return [
+    new Paragraph({
+      children: [new TextRun({ text: `[图片: ${alt || fileName}]`, italics: true })],
+      alignment: AlignmentType.CENTER,
+    }),
+  ];
+}
+
+function convertLayoutRowToParagraphs(node: TiptapNode): Paragraph[] {
+  if (!node.content || node.content.length === 0) {
+    return [];
+  }
+  const columns = node.content.filter(col => col.type === 'layoutColumn');
+  if (columns.length <= 1) {
+    const firstColumn = columns[0];
+    if (firstColumn?.content) {
+      const paragraphs: Paragraph[] = [];
+      for (const block of firstColumn.content) {
+        paragraphs.push(...convertNodeToParagraphs(block));
+      }
+      return paragraphs;
+    }
+    return [];
+  }
+  const paragraphs: Paragraph[] = [];
+  for (let i = 0; i < columns.length; i++) {
+    const column = columns[i];
+    if (column?.content) {
+      paragraphs.push(
+        new Paragraph({ children: [new TextRun({ text: `【列 ${i + 1}】`, bold: true })] })
+      );
+      for (const block of column.content) {
+        paragraphs.push(...convertNodeToParagraphs(block));
+      }
+    }
+  }
+  return paragraphs;
+}
+
+function convertParagraphToParagraphs(node: TiptapNode): Paragraph[] {
+  if (!node.content || node.content.length === 0) {
+    return [new Paragraph({ children: [new TextRun({ text: '' })] })];
+  }
+  const textRuns = convertTextContent(node.content);
+  return [
+    new Paragraph({
+      children: textRuns,
+      alignment: AlignmentType.LEFT,
+    }),
+  ];
+}
+
+function convertTextContent(nodes: TiptapNode[]): TextRun[] {
+  const textRuns: TextRun[] = [];
+  for (const node of nodes) {
+    if (node.type === 'text' && node.text) {
+      const isBold = node.marks?.some(mark => mark.type === 'bold') ?? false;
+      const isItalic = node.marks?.some(mark => mark.type === 'italic') ?? false;
+      const isStrike = node.marks?.some(mark => mark.type === 'strike') ?? false;
+      const colorMark = node.marks?.find(mark => mark.type === 'textStyle');
+      const color = colorMark?.attrs?.color as string | undefined;
+      const hexColor = color ? convertColorToHex(color) : undefined;
+
+      textRuns.push(
+        new TextRun({
+          text: node.text,
+          bold: isBold,
+          italics: isItalic,
+          strike: isStrike,
+          color: hexColor,
+        })
+      );
+    } else if (node.type === 'hardBreak') {
+      textRuns.push(new TextRun({ text: '', break: 1 }));
+    } else if (node.content && Array.isArray(node.content)) {
+      textRuns.push(...convertTextContent(node.content));
+    }
+  }
+  return textRuns;
+}
+
+function convertHeadingToParagraphs(node: TiptapNode): Paragraph[] {
+  const level = (node.attrs?.level as number) || 1;
+  const text = node.content ? node.content.map(n => (n.text ? n.text : '')).join('') : '';
+  if (!text) {
+    return [];
+  }
+  const headingLevelMap: Record<number, (typeof HeadingLevel)[keyof typeof HeadingLevel]> = {
+    1: HeadingLevel.HEADING_1,
+    2: HeadingLevel.HEADING_2,
+    3: HeadingLevel.HEADING_3,
+    4: HeadingLevel.HEADING_4,
+    5: HeadingLevel.HEADING_5,
+    6: HeadingLevel.HEADING_6,
+  };
+  return [
+    new Paragraph({
+      text,
+      heading: headingLevelMap[level] || HeadingLevel.HEADING_1,
+      spacing: { before: 200, after: 200 },
+    }),
+  ];
+}
+
+function convertBlockquoteToParagraphs(node: TiptapNode): Paragraph[] {
+  if (!node.content || node.content.length === 0) {
+    return [];
+  }
+  const paragraphs: Paragraph[] = [];
+  for (const child of node.content) {
+    const childParagraphs = convertNodeToParagraphs(child);
+    paragraphs.push(...childParagraphs);
+  }
+  return paragraphs;
+}
+
+function convertListToParagraphs(node: TiptapNode): Paragraph[] {
+  if (!node.content) {
+    return [];
+  }
+  const isOrdered = node.type === 'orderedList';
+  const paragraphs: Paragraph[] = [];
+  node.content.forEach((item, index) => {
+    if (item.type === 'listItem' && item.content) {
+      const prefix = isOrdered ? `${index + 1}.` : '•';
+      for (let i = 0; i < item.content.length; i++) {
+        const child = item.content[i];
+        const childParagraphs = convertNodeToParagraphs(child);
+        for (let j = 0; j < childParagraphs.length; j++) {
+          const p = childParagraphs[j];
+          if (i === 0 && j === 0) {
+            paragraphs.push(
+              new Paragraph({ children: [new TextRun({ text: `${prefix} `, bold: true })] })
+            );
+          }
+          paragraphs.push(p);
+        }
+      }
+    }
+  });
+  return paragraphs;
+}
+
+function convertGenericNodeToParagraphs(node: TiptapNode): Paragraph[] {
+  if (node.content && Array.isArray(node.content)) {
+    const paragraphs: Paragraph[] = [];
+    for (const child of node.content) {
+      paragraphs.push(...convertNodeToParagraphs(child));
+    }
+    return paragraphs;
+  }
+  return [];
+}
