@@ -17,7 +17,7 @@ import { WorkspaceView } from './components/workspace';
 import { TabsBar, UnsavedTabsDialog } from './components/tabs';
 import { showConfirm } from './hooks/useConfirm';
 import { showPrompt } from './hooks/usePrompt';
-import { exportMarkdownFromTiptap } from './utils/exporters/markdown';
+import { exportMarkdownFromTiptap, exportMarkdownWithAssets } from './utils/exporters/markdown';
 
 const { Header, Content } = Layout;
 
@@ -156,8 +156,13 @@ function App() {
   }, [handleSave, viewMode, workspace]);
 
   const handleExportMarkdown = async () => {
-    const markdown = exportMarkdownFromTiptap(documentContent);
-    await window.electronAPI.fileSaveAs(markdown);
+    const { markdown, localImages } = exportMarkdownWithAssets(documentContent);
+
+    if (localImages.length > 0) {
+      await window.electronAPI.fileExportMarkdownWithAssets(markdown, localImages);
+    } else {
+      await window.electronAPI.fileSaveAs(markdown);
+    }
   };
 
   const handleNew = () => {

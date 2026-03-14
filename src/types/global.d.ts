@@ -34,6 +34,15 @@ declare global {
         path?: string;
         error?: string;
       }>;
+      fileExportMarkdownWithAssets: (
+        content: string,
+        images: Array<{ originalPath: string; fileName: string }>
+      ) => Promise<{
+        success: boolean;
+        path?: string;
+        assetsDir?: string;
+        error?: string;
+      }>;
       fileExists: (path: string) => Promise<{ exists: boolean }>;
       fileStat: (path: string) => Promise<{
         success: boolean;

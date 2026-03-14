@@ -333,6 +333,56 @@ function registerFileHandlers() {
     }
   });
 
+  // 带附件的 Markdown 导出
+  ipcMain.handle(
+    'file:exportMarkdownWithAssets',
+    async (
+      _,
+      {
+        content,
+        images,
+      }: {
+        content: string;
+        images: Array<{ originalPath: string; fileName: string }>;
+      }
+    ) => {
+      try {
+        const result = await dialog.showSaveDialog({
+          filters: [{ name: 'Markdown', extensions: ['md'] }],
+          defaultPath: 'document.md',
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, error: 'User canceled' };
+        }
+
+        const markdownPath = result.filePath;
+        const assetsDir = join(markdownPath.replace(/\.md$/i, '') + '_assets');
+
+        await mkdir(assetsDir, { recursive: true });
+
+        for (const img of images) {
+          const destPath = join(assetsDir, img.fileName);
+          await copyFile(img.originalPath, destPath);
+        }
+
+        await writeFile(markdownPath, content, 'utf-8');
+
+        return {
+          success: true,
+          path: markdownPath,
+          assetsDir,
+        };
+      } catch (error) {
+        console.error('Error exporting markdown with assets:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }
+  );
+
   // 检查文件是否存在
   ipcMain.handle('file:exists', async (_, { path }: { path: string }) => {
     try {

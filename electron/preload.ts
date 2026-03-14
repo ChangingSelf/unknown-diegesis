@@ -8,6 +8,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fileOpenWithPath: (path: string) => ipcRenderer.invoke('file:openWithPath', { path }),
   fileSave: (path: string, content: string) => ipcRenderer.invoke('file:save', { path, content }),
   fileSaveAs: (content: string) => ipcRenderer.invoke('file:saveAs', { content }),
+  fileExportMarkdownWithAssets: (
+    content: string,
+    images: Array<{ originalPath: string; fileName: string }>
+  ) => ipcRenderer.invoke('file:exportMarkdownWithAssets', { content, images }),
   fileExists: (path: string) => ipcRenderer.invoke('file:exists', { path }),
   fileStat: (path: string) => ipcRenderer.invoke('file:stat', { path }),
 
@@ -53,6 +57,15 @@ declare global {
       }>;
       fileSave: (path: string, content: string) => Promise<{ success: boolean; error?: string }>;
       fileSaveAs: (content: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+      fileExportMarkdownWithAssets: (
+        content: string,
+        images: Array<{ originalPath: string; fileName: string }>
+      ) => Promise<{
+        success: boolean;
+        path?: string;
+        assetsDir?: string;
+        error?: string;
+      }>;
       fileExists: (path: string) => Promise<{ exists: boolean }>;
       fileStat: (
         path: string

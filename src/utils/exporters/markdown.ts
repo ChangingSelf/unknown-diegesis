@@ -1,4 +1,37 @@
 import type { TiptapDocument, TiptapNode } from '@/types/tiptap';
+import { isRemoteUrl } from '@/utils/imagePath';
+
+export interface MarkdownExportResult {
+  markdown: string;
+  localImages: Array<{
+    originalPath: string;
+    fileName: string;
+  }>;
+}
+
+function collectLocalImages(node: TiptapNode): Array<{ originalPath: string; fileName: string }> {
+  const images: Array<{ originalPath: string; fileName: string }> = [];
+
+  function traverse(n: TiptapNode) {
+    if (n.type === 'imageBlock') {
+      const src = String(n.attrs?.src || '');
+      // 只收集本地图片（非远程 URL）
+      if (src && !isRemoteUrl(src) && !src.startsWith('data:')) {
+        const fileName = src.split(/[/\\]/).pop() || `image_${Date.now()}.png`;
+        images.push({ originalPath: src, fileName });
+      }
+    }
+    if (n.content) {
+      n.content.forEach(traverse);
+    }
+  }
+
+  if (node.content) {
+    node.content.forEach(traverse);
+  }
+
+  return images;
+}
 
 function exportTextContent(node: TiptapNode): string {
   if (node.type === 'text' && node.text) {
@@ -104,7 +137,9 @@ function exportImageBlockToMarkdown(node: TiptapNode): string {
     return '';
   }
 
-  return `![${alt}](${src})\n\n`;
+  const fileName = src.split(/[/\\]/).pop() || `image_${Date.now()}.png`;
+
+  return `![${alt}](assets/${fileName})\n\n`;
 }
 
 function exportLayoutRowToMarkdown(node: TiptapNode): string {
@@ -228,4 +263,14 @@ export function exportMarkdownFromTiptap(document: TiptapDocument): string {
   const lines = document.content.map(node => exportNodeToMarkdown(node)).filter(Boolean);
 
   return lines.join('').trim();
+}
+
+export function exportMarkdownWithAssets(document: TiptapDocument): MarkdownExportResult {
+  const markdown = exportMarkdownFromTiptap(document);
+  const localImages = collectLocalImages(document);
+
+  return {
+    markdown,
+    localImages,
+  };
 }
