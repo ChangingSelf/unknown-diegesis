@@ -244,20 +244,20 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
               style={customWidth ? { width: `${customWidth}px` } : undefined}
             />
             <div
-              className="absolute -bottom-3 -right-3 w-4 h-4 bg-blue-500 cursor-se-resize rounded-sm flex items-center justify-center hover:bg-blue-600 transition-colors"
-              contentEditable={false}
+              className="resize-handle"
+              style={{
+                position: 'absolute',
+                right: 0,
+                bottom: 0,
+                width: 16,
+                height: 16,
+                backgroundColor: '#3b82f6',
+                cursor: 'se-resize',
+                zIndex: 100,
+              }}
               onMouseDown={handleResizeMouseDown}
               title="拖拽调整宽度"
-            >
-              <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M4 9h16M4 15h16M9 4v16M15 4v16"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                />
-              </svg>
-            </div>
+            />
           </div>
         ) : (
           <div
