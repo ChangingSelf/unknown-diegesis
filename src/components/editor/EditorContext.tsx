@@ -17,6 +17,7 @@ import { ImageBlockExtension } from '@/extensions/nodes/ImageBlockExtension';
 import { LayoutRowExtension } from '@/extensions/nodes/LayoutRowExtension';
 import { LayoutColumnExtension } from '@/extensions/nodes/LayoutColumnExtension';
 import { PasteImageExtension } from '@/extensions/nodes/PasteImageExtension';
+import { DocumentStateManager } from '@/services/DocumentStateManager';
 
 export interface EditorConfig {
   placeholder?: string;
@@ -40,7 +41,15 @@ interface EditorContextType {
   getSnapshot: () => EditorSnapshot | null;
   restoreFromSnapshot: (snapshot: EditorSnapshot) => void;
   focus: () => void;
+  undo: () => void;
+  redo: () => void;
+  stateManager: DocumentStateManager;
+  saveCurrentState: (docId: string) => void;
+  restoreState: (docId: string) => boolean;
+  hasState: (docId: string) => boolean;
 }
+
+export type { EditorContextType };
 
 const EditorContext = createContext<EditorContextType | null>(null);
 
@@ -54,6 +63,9 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
       blockquote: false,
       horizontalRule: false,
       document: false,
+      undoRedo: {
+        newGroupDelay: 0,
+      },
     }),
     Placeholder.configure({
       placeholder: config.placeholder || '开始输入...',
@@ -83,21 +95,29 @@ interface EditorProviderProps {
   children: React.ReactNode;
   initialConfig?: EditorConfig;
   onContentChange?: (content: object) => void;
+  onContextReady?: (context: EditorContextType) => void;
 }
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({
   children,
   initialConfig,
   onContentChange,
+  onContextReady,
 }) => {
   const editorRef = useRef<TiptapEditor | null>(null);
   const onContentChangeRef = useRef(onContentChange);
+  const onContextReadyRef = useRef(onContextReady);
+  const stateManagerRef = useRef<DocumentStateManager>(new DocumentStateManager());
   const [editor, setEditor] = useState<TiptapEditor | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     onContentChangeRef.current = onContentChange;
   }, [onContentChange]);
+
+  useEffect(() => {
+    onContextReadyRef.current = onContextReady;
+  }, [onContextReady]);
 
   useEffect(() => {
     const config = initialConfig || {};
@@ -134,18 +154,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (!editorRef.current || !initialConfig?.content) return;
-    const currentContent = JSON.stringify(editorRef.current.getJSON());
-    const newContent = JSON.stringify(initialConfig.content);
-    if (currentContent !== newContent) {
-      editorRef.current.commands.setContent(initialConfig.content);
-      requestAnimationFrame(() => {
-        editorRef.current?.commands.focus('end');
-      });
-    }
-  }, [initialConfig?.content]);
 
   const setContent = useCallback((content: object) => {
     if (editorRef.current) {
@@ -186,6 +194,38 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     }
   }, []);
 
+  const undo = useCallback(() => {
+    if (editorRef.current) {
+      editorRef.current.chain().focus().undo().run();
+    }
+  }, []);
+
+  const redo = useCallback(() => {
+    if (editorRef.current) {
+      editorRef.current.chain().focus().redo().run();
+    }
+  }, []);
+
+  const saveCurrentState = useCallback((docId: string) => {
+    if (editorRef.current) {
+      stateManagerRef.current.saveState(docId, editorRef.current);
+    }
+  }, []);
+
+  const restoreState = useCallback((docId: string): boolean => {
+    if (!editorRef.current) return false;
+
+    const state = stateManagerRef.current.getState(docId);
+    if (!state) return false;
+
+    editorRef.current.view.updateState(state.editorState);
+    return true;
+  }, []);
+
+  const hasState = useCallback((docId: string): boolean => {
+    return stateManagerRef.current.hasState(docId);
+  }, []);
+
   const value: EditorContextType = {
     editor,
     isReady,
@@ -193,7 +233,19 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     getSnapshot,
     restoreFromSnapshot,
     focus,
+    undo,
+    redo,
+    stateManager: stateManagerRef.current,
+    saveCurrentState,
+    restoreState,
+    hasState,
   };
+
+  useEffect(() => {
+    if (isReady && onContextReadyRef.current) {
+      onContextReadyRef.current(value);
+    }
+  }, [isReady, value]);
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
 };

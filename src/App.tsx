@@ -18,6 +18,7 @@ import { TabsBar, UnsavedTabsDialog } from './components/tabs';
 import { showConfirm } from './hooks/useConfirm';
 import { showPrompt } from './hooks/usePrompt';
 import { exportMarkdownFromTiptap, exportMarkdownWithAssets } from './utils/exporters/markdown';
+import type { EditorContextType } from './components/editor/EditorContext';
 
 const { Header, Content } = Layout;
 
@@ -28,6 +29,7 @@ function App() {
   const fileServiceRef = useRef<FileService>(new FileService());
   const recentWorkspacesServiceRef = useRef<RecentWorkspacesService>(new RecentWorkspacesService());
   const tabManagerRef = useRef<TabManager>(new TabManager());
+  const editorContextRef = useRef<EditorContextType | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>('welcome');
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -186,6 +188,10 @@ function App() {
     }
   };
 
+  const handleEditorContextReady = useCallback((context: EditorContextType) => {
+    editorContextRef.current = context;
+  }, []);
+
   const handleOpenWorkspace = async () => {
     const result = await workspaceManagerRef.current.openWorkspace();
     if (result.error) {
@@ -267,7 +273,13 @@ function App() {
     if (data) {
       setCurrentChapterId(chapterId);
       setCurrentDocumentData(data);
-      setDocumentContent(data.content || createEmptyDocument());
+
+      // Restore saved editor state if available, otherwise load content anew
+      if (editorContextRef.current?.hasState(chapterId)) {
+        editorContextRef.current.restoreState(chapterId);
+      } else {
+        setDocumentContent(data.content || createEmptyDocument());
+      }
 
       tabManagerRef.current.openTab('chapter', chapterId, data.meta.title, workspace.path);
     }
@@ -354,6 +366,10 @@ function App() {
 
     tabManagerRef.current.closeTab(tabId);
 
+    if (editorContextRef.current) {
+      editorContextRef.current.stateManager.removeState(tab.resourceId);
+    }
+
     if (tabState.tabs.length === 1) {
       setCurrentChapterId(null);
       setCurrentDocumentData(null);
@@ -364,6 +380,12 @@ function App() {
   const handleTabActivate = async (tabId: string) => {
     const tab = tabManagerRef.current.getTab(tabId);
     if (!tab) return;
+
+    // Save current tab's state before switching
+    const currentTab = tabManagerRef.current.getActiveTab();
+    if (currentTab && editorContextRef.current) {
+      editorContextRef.current.saveCurrentState(currentTab.resourceId);
+    }
 
     if (tab.type === 'chapter' && tab.workspacePath) {
       if (!workspace || workspace.path !== tab.workspacePath) {
@@ -379,10 +401,17 @@ function App() {
         setViewMode('single-file');
       }
       if (tab.resourceId !== 'new' && tab.resourceId !== fileState.currentFilePath) {
-        const result = await window.electronAPI.fileOpenWithPath(tab.resourceId);
-        if (result.success && result.content) {
-          const content = createDocumentFromText(result.content);
-          setDocumentContent(content);
+        // Check if we have saved state for this file
+        if (editorContextRef.current?.hasState(tab.resourceId)) {
+          // Restore saved state - preserves undo/redo history
+          editorContextRef.current.restoreState(tab.resourceId);
+        } else {
+          // No saved state, load from file
+          const result = await window.electronAPI.fileOpenWithPath(tab.resourceId);
+          if (result.success && result.content) {
+            const content = createDocumentFromText(result.content);
+            setDocumentContent(content);
+          }
         }
       }
     }
@@ -415,6 +444,10 @@ function App() {
       setPendingCloseTabs(unsavedTabs.map(t => t.id));
       setShowUnsavedDialog(true);
       return;
+    }
+
+    if (editorContextRef.current) {
+      editorContextRef.current.stateManager.clear();
     }
 
     tabManagerRef.current.closeAllTabs();
@@ -510,6 +543,7 @@ function App() {
                 initialContent={documentContent}
                 onContentChange={handleContentChange}
                 placeholder="选择一个章节开始编辑"
+                onContextReady={handleEditorContextReady}
               />
             </WorkspaceView>
           </Content>
@@ -579,6 +613,7 @@ function App() {
                 initialContent={documentContent}
                 onContentChange={handleContentChange}
                 placeholder="没有内容，请打开文件或创建新文档"
+                onContextReady={handleEditorContextReady}
               />
             </div>
           </div>
