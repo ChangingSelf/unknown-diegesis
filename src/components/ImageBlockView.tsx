@@ -158,7 +158,7 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
   if (isEditing) {
     return (
       <NodeViewWrapper
-        className={`image-block-editing p-4 bg-paper-50 rounded-lg border border-paper-200 ${selected ? 'ring-2 ring-blue-400' : ''}`}
+        className={`image-block-editing p-4 bg-paper-50 rounded-lg border border-paper-200 ${selected ? 'block-selected' : ''}`}
         data-type="image-block"
       >
         <div className="mb-3">
@@ -215,7 +215,7 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
 
   return (
     <NodeViewWrapper
-      className={`${containerClass} ${selected ? 'ring-2 ring-blue-400' : ''}`}
+      className={`${containerClass} ${selected ? 'block-selected' : ''}`}
       data-type="image-block"
     >
       <div

@@ -63,7 +63,7 @@ const BlockWrapperView = memo(({ node, selected, updateAttributes, deleteNode }:
 
   return (
     <NodeViewWrapper
-      className={`block-wrapper group relative ${selected ? 'ring-2 ring-blue-400' : ''}`}
+      className={`block-wrapper group relative ${selected ? 'block-selected' : ''}`}
       data-block-id={node.attrs.id}
       data-block-type={blockType}
       onMouseDown={handleMouseDown}

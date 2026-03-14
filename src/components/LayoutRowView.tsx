@@ -45,7 +45,7 @@ const LayoutRowView = memo(({ node, selected, deleteNode, editor }: NodeViewProp
 
   return (
     <NodeViewWrapper
-      className={`layout-row group relative mb-6 ${selected ? 'ring-2 ring-blue-400' : ''}`}
+      className={`layout-row group relative mb-6 ${selected ? 'block-selected' : ''}`}
       data-type="layout-row"
     >
       <div

@@ -685,3 +685,17 @@ body {
 .ant-tag .anticon {
   font-size: 12px !important;
 }
+
+/* ========================================
+   BLOCK SELECTION STYLES
+   ======================================== */
+
+.block-selected {
+  background-color: rgba(20, 184, 166, 0.12);
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.block-selected:hover {
+  background-color: rgba(20, 184, 166, 0.18);
+}

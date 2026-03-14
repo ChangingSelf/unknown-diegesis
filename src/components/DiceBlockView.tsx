@@ -122,7 +122,7 @@ const DiceBlockView = memo(({ node, updateAttributes, selected, deleteNode }: No
   if (isEditing) {
     return (
       <NodeViewWrapper
-        className={`dice-block-editing p-4 bg-paper-50 rounded-lg border border-paper-200 ${selected ? 'ring-2 ring-blue-400' : ''}`}
+        className={`dice-block-editing p-4 bg-paper-50 rounded-lg border border-paper-200 ${selected ? 'block-selected' : ''}`}
         data-type="dice-block"
       >
         <div className="flex items-center gap-4">
@@ -179,7 +179,7 @@ const DiceBlockView = memo(({ node, updateAttributes, selected, deleteNode }: No
 
   return (
     <NodeViewWrapper
-      className={`dice-block p-4 bg-paper-50 rounded-lg border border-paper-200 group ${selected ? 'ring-2 ring-blue-400' : ''}`}
+      className={`dice-block p-4 bg-paper-50 rounded-lg border border-paper-200 group ${selected ? 'block-selected' : ''}`}
       data-type="dice-block"
     >
       <div
