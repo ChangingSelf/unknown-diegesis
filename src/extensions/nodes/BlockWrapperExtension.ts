@@ -145,7 +145,8 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
     return {
       Enter: () => {
         const { state, dispatch } = this.editor.view;
-        const { $from } = state.selection;
+        const { selection } = state;
+        const { $from } = selection;
 
         const blockWrapperNode = $from.node($from.depth - 1);
         if (blockWrapperNode?.type.name !== this.name) {
@@ -153,22 +154,91 @@ export const BlockWrapper = Node.create<BlockWrapperOptions>({
         }
 
         const blockWrapperPos = $from.before($from.depth - 1);
+        const currentParagraph = $from.parent;
+        const textContent = currentParagraph.textContent;
+        const cursorPos = $from.parentOffset;
+
+        if (textContent.length === 0) {
+          const now = new Date().toISOString();
+          const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          const newBlockWrapper = state.schema.nodes.blockWrapper.create(
+            {
+              id: generateId(),
+              blockType: 'paragraph',
+              created: now,
+              modified: now,
+            },
+            [state.schema.nodes.paragraph.create()]
+          );
+          const tr = state.tr.insert(blockWrapperPos + blockWrapperNode.nodeSize, newBlockWrapper);
+          const newPos = blockWrapperPos + blockWrapperNode.nodeSize + 2;
+          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+          dispatch(tr);
+          return true;
+        }
+
+        const isAtEnd = $from.parentOffset === $from.parent.content.size;
+
+        if (isAtEnd) {
+          const now = new Date().toISOString();
+          const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          const newBlockWrapper = state.schema.nodes.blockWrapper.create(
+            {
+              id: generateId(),
+              blockType: 'paragraph',
+              created: now,
+              modified: now,
+            },
+            [state.schema.nodes.paragraph.create()]
+          );
+
+          const tr = state.tr.insert(blockWrapperPos + blockWrapperNode.nodeSize, newBlockWrapper);
+          const newPos = blockWrapperPos + blockWrapperNode.nodeSize + 2;
+          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+          dispatch(tr);
+          return true;
+        }
+
         const now = new Date().toISOString();
         const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        const newBlockWrapper = state.schema.nodes.blockWrapper.create(
+        const parentContent = currentParagraph.content;
+        const splitPos = cursorPos;
+        const leftFragment = parentContent.cut(0, splitPos);
+        const rightFragment = parentContent.cut(splitPos);
+
+        const paragraphBefore = state.schema.nodes.paragraph.create(undefined, leftFragment);
+        const paragraphAfter = state.schema.nodes.paragraph.create(undefined, rightFragment);
+
+        const blockWrapperBefore = state.schema.nodes.blockWrapper.create(
           {
             id: generateId(),
             blockType: 'paragraph',
             created: now,
             modified: now,
           },
-          [state.schema.nodes.paragraph.create()]
+          [paragraphBefore]
+        );
+        const blockWrapperAfter = state.schema.nodes.blockWrapper.create(
+          {
+            id: generateId(),
+            blockType: 'paragraph',
+            created: now,
+            modified: now,
+          },
+          [paragraphAfter]
         );
 
-        const tr = state.tr.insert(blockWrapperPos + blockWrapperNode.nodeSize, newBlockWrapper);
-        const newPos = blockWrapperPos + blockWrapperNode.nodeSize + 2;
-        tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+        const tr = state.tr;
+        tr.delete(blockWrapperPos, blockWrapperPos + blockWrapperNode.nodeSize);
+        tr.insert(blockWrapperPos, blockWrapperBefore);
+        const afterPos = blockWrapperPos + blockWrapperBefore.nodeSize;
+        tr.insert(afterPos, blockWrapperAfter);
+
+        const newCursorPos = afterPos + 2;
+        tr.setSelection(TextSelection.near(tr.doc.resolve(newCursorPos)));
         dispatch(tr);
 
         return true;
