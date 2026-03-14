@@ -95,7 +95,6 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!customWidth && !imageSize?.width) return;
 
       const startWidth = customWidth || imageSize?.width || 300;
       resizeStartRef.current = { x: e.clientX, width: startWidth };
@@ -110,7 +109,7 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
 
       const handleMouseUp = () => {
         setIsResizing(false);
-        if (resizeStartRef.current && customWidth !== null) {
+        if (resizeStartRef.current) {
           updateAttributes({ width: customWidth });
         }
         resizeStartRef.current = null;
