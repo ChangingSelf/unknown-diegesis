@@ -11,7 +11,7 @@ import OrderedList from '@tiptap/extension-ordered-list';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import { richTextExtensions } from '@/extensions/RichTextExtensions';
 import { DocExtension } from '@/extensions/nodes/DocExtension';
-import { BlockWrapper } from '@/extensions/nodes/BlockWrapperExtension';
+import GlobalBlockAttributes from '@/extensions/GlobalBlockAttributes';
 import { DiceBlockExtension } from '@/extensions/nodes/DiceBlockExtension';
 import { ImageBlockExtension } from '@/extensions/nodes/ImageBlockExtension';
 import { LayoutRowExtension } from '@/extensions/nodes/LayoutRowExtension';
@@ -82,7 +82,7 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
     OrderedList,
     HorizontalRule,
     ...richTextExtensions,
-    BlockWrapper,
+    GlobalBlockAttributes,
     DiceBlockExtension,
     ImageBlockExtension,
     LayoutRowExtension,

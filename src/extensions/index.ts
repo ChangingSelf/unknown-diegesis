@@ -1,4 +1,3 @@
-export { BlockWrapper } from './nodes/BlockWrapperExtension';
 export { DiceBlockExtension } from './nodes/DiceBlockExtension';
 export { ImageBlockExtension } from './nodes/ImageBlockExtension';
 export { LayoutRowExtension } from './nodes/LayoutRowExtension';
