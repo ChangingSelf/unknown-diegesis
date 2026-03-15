@@ -1,7 +1,8 @@
 import React from 'react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Editor as TiptapEditor } from '@tiptap/react';
-import { Button, Tooltip } from 'antd';
+import { Button, Space, Dropdown, ConfigProvider, Card } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   BoldOutlined,
   ItalicOutlined,
@@ -10,6 +11,8 @@ import {
   OrderedListOutlined,
   CodeOutlined,
   LinkOutlined,
+  FontSizeOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 
 interface FloatingToolbarProps {
@@ -70,124 +73,146 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({ editor, childr
     return editor.isActive(type, attrs);
   };
 
+  const headingItems: MenuProps['items'] = [
+    {
+      key: 'h1',
+      label: (
+        <span className={isActive('heading', { level: 1 }) ? 'font-bold text-primary' : ''}>
+          标题 1
+        </span>
+      ),
+      onClick: () => handleHeading(1),
+    },
+    {
+      key: 'h2',
+      label: (
+        <span className={isActive('heading', { level: 2 }) ? 'font-bold text-primary' : ''}>
+          标题 2
+        </span>
+      ),
+      onClick: () => handleHeading(2),
+    },
+    {
+      key: 'h3',
+      label: (
+        <span className={isActive('heading', { level: 3 }) ? 'font-bold text-primary' : ''}>
+          标题 3
+        </span>
+      ),
+      onClick: () => handleHeading(3),
+    },
+  ];
+
+  const isHeadingActive =
+    isActive('heading', { level: 1 }) ||
+    isActive('heading', { level: 2 }) ||
+    isActive('heading', { level: 3 });
+
   return (
-    <BubbleMenu
-      editor={editor}
-      shouldShow={({ state }) => {
-        const { from, to } = state.selection;
-        return from !== to;
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#1677ff',
+          borderRadius: 6,
+        },
       }}
-      className="flex items-center gap-1 px-2 py-1.5 bg-white rounded-lg shadow-lg border border-gray-200"
     >
-      <Tooltip title="加粗 (Ctrl+B)">
-        <Button
-          type="text"
-          size="small"
-          icon={<BoldOutlined />}
-          onClick={handleBold}
-          className={isActive('bold') ? 'bg-gray-200' : ''}
-        />
-      </Tooltip>
+      <BubbleMenu
+        editor={editor}
+        shouldShow={({ state }) => {
+          const { from, to } = state.selection;
+          return from !== to;
+        }}
+        options={{
+          offset: 8,
+          placement: 'top',
+        }}
+        className="floating-toolbar"
+      >
+        <Card size="small" styles={{ body: { padding: '4px 8px' } }}>
+          <Space size={2}>
+            <Space size={2}>
+              <Button
+                type={isActive('bold') ? 'primary' : 'text'}
+                size="small"
+                icon={<BoldOutlined />}
+                onClick={handleBold}
+                className="w-8 h-8"
+              />
+              <Button
+                type={isActive('italic') ? 'primary' : 'text'}
+                size="small"
+                icon={<ItalicOutlined />}
+                onClick={handleItalic}
+                className="w-8 h-8"
+              />
+              <Button
+                type={isActive('strike') ? 'primary' : 'text'}
+                size="small"
+                icon={<StrikethroughOutlined />}
+                onClick={handleStrike}
+                className="w-8 h-8"
+              />
+              <Button
+                type={isActive('highlight') ? 'primary' : 'text'}
+                size="small"
+                icon={<HighlightOutlined />}
+                onClick={handleHighlight}
+                className="w-8 h-8"
+              />
+            </Space>
 
-      <Tooltip title="斜体 (Ctrl+I)">
-        <Button
-          type="text"
-          size="small"
-          icon={<ItalicOutlined />}
-          onClick={handleItalic}
-          className={isActive('italic') ? 'bg-gray-200' : ''}
-        />
-      </Tooltip>
+            <div className="w-px h-6 bg-gray-200" />
 
-      <Tooltip title="删除线 (Ctrl+Shift+X)">
-        <Button
-          type="text"
-          size="small"
-          icon={<StrikethroughOutlined />}
-          onClick={handleStrike}
-          className={isActive('strike') ? 'bg-gray-200' : ''}
-        />
-      </Tooltip>
+            <Dropdown menu={{ items: headingItems }} trigger={['click']} placement="bottom">
+              <Button
+                type={isHeadingActive ? 'primary' : 'text'}
+                size="small"
+                icon={<FontSizeOutlined />}
+                className="min-w-16"
+              >
+                {isActive('heading', { level: 1 })
+                  ? 'H1'
+                  : isActive('heading', { level: 2 })
+                    ? 'H2'
+                    : isActive('heading', { level: 3 })
+                      ? 'H3'
+                      : '标题'}
+                <DownOutlined className="text-xs ml-1" />
+              </Button>
+            </Dropdown>
 
-      <Tooltip title="高亮 (Ctrl+Shift+H)">
-        <Button
-          type="text"
-          size="small"
-          icon={<HighlightOutlined />}
-          onClick={handleHighlight}
-          className={isActive('highlight') ? 'bg-gray-200' : ''}
-        />
-      </Tooltip>
+            <div className="w-px h-6 bg-gray-200" />
 
-      <div className="w-px h-4 bg-gray-300 mx-1" />
+            <Space size={2}>
+              <Button
+                type={isActive('blockquote') ? 'primary' : 'text'}
+                size="small"
+                icon={<OrderedListOutlined />}
+                onClick={handleBlockquote}
+                className="w-8 h-8"
+              />
+              <Button
+                type={isActive('code') ? 'primary' : 'text'}
+                size="small"
+                icon={<CodeOutlined />}
+                onClick={handleCode}
+                className="w-8 h-8"
+              />
+              <Button
+                type={isActive('link') ? 'primary' : 'text'}
+                size="small"
+                icon={<LinkOutlined />}
+                onClick={handleLink}
+                className="w-8 h-8"
+              />
+            </Space>
 
-      <Tooltip title="标题1 (Ctrl+Alt+1)">
-        <Button
-          type="text"
-          size="small"
-          onClick={() => handleHeading(1)}
-          className={isActive('heading', { level: 1 }) ? 'bg-gray-200' : ''}
-        >
-          H1
-        </Button>
-      </Tooltip>
-
-      <Tooltip title="标题2 (Ctrl+Alt+2)">
-        <Button
-          type="text"
-          size="small"
-          onClick={() => handleHeading(2)}
-          className={isActive('heading', { level: 2 }) ? 'bg-gray-200' : ''}
-        >
-          H2
-        </Button>
-      </Tooltip>
-
-      <Tooltip title="标题3 (Ctrl+Alt+3)">
-        <Button
-          type="text"
-          size="small"
-          onClick={() => handleHeading(3)}
-          className={isActive('heading', { level: 3 }) ? 'bg-gray-200' : ''}
-        >
-          H3
-        </Button>
-      </Tooltip>
-
-      <div className="w-px h-4 bg-gray-300 mx-1" />
-
-      <Tooltip title="引用 (Ctrl+Shift+B)">
-        <Button
-          type="text"
-          size="small"
-          icon={<OrderedListOutlined />}
-          onClick={handleBlockquote}
-          className={isActive('blockquote') ? 'bg-gray-200' : ''}
-        />
-      </Tooltip>
-
-      <Tooltip title="代码 (Ctrl+E)">
-        <Button
-          type="text"
-          size="small"
-          icon={<CodeOutlined />}
-          onClick={handleCode}
-          className={isActive('code') ? 'bg-gray-200' : ''}
-        />
-      </Tooltip>
-
-      <Tooltip title="链接 (Ctrl+K)">
-        <Button
-          type="text"
-          size="small"
-          icon={<LinkOutlined />}
-          onClick={handleLink}
-          className={isActive('link') ? 'bg-gray-200' : ''}
-        />
-      </Tooltip>
-
-      {children}
-    </BubbleMenu>
+            {children}
+          </Space>
+        </Card>
+      </BubbleMenu>
+    </ConfigProvider>
   );
 };
 

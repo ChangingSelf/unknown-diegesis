@@ -63,12 +63,8 @@ export const TiptapEditorComponent = forwardRef<TiptapEditorRef, TiptapEditorPro
 
     return (
       <div className={`editor-container ${className}`} onClick={handleEditorClick}>
+        <FloatingToolbar editor={editor} />
         <EditorContent editor={editor as TiptapEditor} className="tiptap-content" />
-        {editor.state.selection.from !== editor.state.selection.to && (
-          <FloatingToolbar editor={editor}>
-            <div />
-          </FloatingToolbar>
-        )}
       </div>
     );
   }
