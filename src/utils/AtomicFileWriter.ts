@@ -5,8 +5,8 @@ export class AtomicFileWriter {
     content: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const api: any = typeof window !== 'undefined' ? (window as any).electronAPI : null;
-      const workspaceWriteFile = api?.electronAPI as
+      const api: any = typeof window !== 'undefined' ? window.electronAPI : null;
+      const workspaceWriteFile = api?.workspaceWriteFile as
         | ((path: string, content: string) => Promise<{ success: boolean; error?: string }>)
         | undefined;
 
@@ -19,13 +19,13 @@ export class AtomicFileWriter {
         return { success: false, error: resTmp?.error ?? 'Failed to write tmp file' };
       }
 
-      const workspaceRename = api?.electronAPI?.workspaceRename as
+      const workspaceRename = api?.workspaceRename as
         | ((src: string, dest: string) => Promise<{ success: boolean; error?: string }>)
         | undefined;
-      const workspaceMove = api?.electronAPI?.workspaceMove as
+      const workspaceMove = api?.workspaceMove as
         | ((src: string, dest: string) => Promise<{ success: boolean; error?: string }>)
         | undefined;
-      const workspaceDelete = api?.electronAPI?.workspaceDelete as
+      const workspaceDelete = api?.workspaceDelete as
         | ((path: string) => Promise<{ success: boolean; error?: string }>)
         | undefined;
 
