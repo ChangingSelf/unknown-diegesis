@@ -2,10 +2,7 @@ import React, { createContext, useContext, useRef, useCallback, useState, useEff
 import { Editor as TiptapEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
 import { richTextExtensions } from '@/extensions/RichTextExtensions';
-import Document from '@tiptap/extension-document';
 import GlobalBlockAttributes from '@/extensions/GlobalBlockAttributes';
 import { DiceBlockExtension } from '@/extensions/nodes/DiceBlockExtension';
 import { ImageBlockExtension } from '@/extensions/nodes/ImageBlockExtension';
@@ -50,10 +47,6 @@ const EditorContext = createContext<EditorContextType | null>(null);
 
 const getEditorExtensions = (config: EditorConfig = {}) => {
   return [
-    Document.configure({
-      content:
-        '(paragraph | heading | blockquote | bulletList | orderedList | taskList | horizontalRule | diceBlock | imageBlock | layoutRow)+',
-    }),
     StarterKit.configure({
       document: false,
       heading: {
@@ -65,10 +58,6 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
     }),
     Placeholder.configure({
       placeholder: config.placeholder || '开始输入...',
-    }),
-    TaskList,
-    TaskItem.configure({
-      nested: true,
     }),
     ...richTextExtensions,
     GlobalBlockAttributes,

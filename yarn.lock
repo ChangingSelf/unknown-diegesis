@@ -1346,6 +1346,11 @@
   resolved "https://registry.yarnpkg.com/@tiptap/extension-dropcursor/-/extension-dropcursor-3.13.0.tgz#04f7659c86558ebeb068fd7d5c2474d8bd28b430"
   integrity sha512-m7GPT3c/83ni+bbU8c+3dpNa8ug+aQ4phNB1Q52VQG3oTonDJnZS7WCtn3lB/Hi1LqoqMtEHwhepU2eD+JeXqQ==
 
+"@tiptap/extension-file-handler@^3.20.1":
+  version "3.20.1"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-file-handler/-/extension-file-handler-3.20.1.tgz#bc70c03d9776cde8fa00147ece2188db050ce9aa"
+  integrity sha512-1shgApolKTuW8Tj+Y8N8V1m3+jb14p257Q/F1cbW8ZiUOE+c+D/ITUzd7hM5MbNm6W0f7CMOc7CnhNoOcpY/TA==
+
 "@tiptap/extension-floating-menu@^3.13.0":
   version "3.13.0"
   resolved "https://registry.yarnpkg.com/@tiptap/extension-floating-menu/-/extension-floating-menu-3.13.0.tgz#03d03292add49d1b380cdb1ff3890b2956d4e3f5"
