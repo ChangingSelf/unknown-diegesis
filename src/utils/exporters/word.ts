@@ -35,8 +35,6 @@ export async function exportWordFromTiptap(document: TiptapDocument): Promise<Ui
 
 function convertNodeToParagraphs(node: TiptapNode): Paragraph[] {
   switch (node.type) {
-    case 'blockWrapper':
-      return convertBlockWrapperToParagraphs(node);
     case 'diceBlock':
       return convertDiceBlockToParagraphs(node);
     case 'imageBlock':
@@ -57,21 +55,6 @@ function convertNodeToParagraphs(node: TiptapNode): Paragraph[] {
     default:
       return convertGenericNodeToParagraphs(node);
   }
-}
-
-function convertBlockWrapperToParagraphs(node: TiptapNode): Paragraph[] {
-  if (!node.content || node.content.length === 0) {
-    return [];
-  }
-
-  const paragraphs: Paragraph[] = [];
-
-  for (const child of node.content) {
-    const childParagraphs = convertNodeToParagraphs(child);
-    paragraphs.push(...childParagraphs);
-  }
-
-  return paragraphs;
 }
 
 function convertDiceBlockToParagraphs(node: TiptapNode): Paragraph[] {

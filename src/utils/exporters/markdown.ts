@@ -78,8 +78,6 @@ function exportTextContent(node: TiptapNode): string {
 
 function exportNodeToMarkdown(node: TiptapNode): string {
   switch (node.type) {
-    case 'blockWrapper':
-      return exportBlockWrapperToMarkdown(node);
     case 'diceBlock':
       return exportDiceBlockToMarkdown(node);
     case 'imageBlock':
@@ -102,19 +100,6 @@ function exportNodeToMarkdown(node: TiptapNode): string {
     default:
       return exportGenericNodeToMarkdown(node);
   }
-}
-
-function exportBlockWrapperToMarkdown(node: TiptapNode): string {
-  if (!node.content || node.content.length === 0) {
-    return '';
-  }
-
-  const innerContent = node.content
-    .map(child => exportNodeToMarkdown(child))
-    .filter(Boolean)
-    .join('\n');
-
-  return innerContent + '\n\n';
 }
 
 function exportDiceBlockToMarkdown(node: TiptapNode): string {

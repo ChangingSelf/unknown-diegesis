@@ -31,8 +31,6 @@ function exportNodeToNGA(
   imageFormat: 'url' | 'bbcode'
 ): string {
   switch (node.type) {
-    case 'blockWrapper':
-      return exportBlockWrapperToNGA(node);
     case 'diceBlock':
       return exportDiceBlockToNGA(node, diceFormat);
     case 'imageBlock':
@@ -55,19 +53,6 @@ function exportNodeToNGA(
     default:
       return exportGenericNodeToNGA(node);
   }
-}
-
-function exportBlockWrapperToNGA(node: TiptapNode): string {
-  if (!node.content || node.content.length === 0) {
-    return '';
-  }
-
-  const innerContent = node.content
-    .map(child => exportNodeToNGA(child, 'standard', 'bbcode'))
-    .filter(Boolean)
-    .join('\n');
-
-  return innerContent;
 }
 
 function exportDiceBlockToNGA(node: TiptapNode, format: 'standard' | 'compact'): string {
