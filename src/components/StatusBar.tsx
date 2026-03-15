@@ -1,6 +1,5 @@
 import React from 'react';
 import { useEditorContext } from '@/components/editor/EditorContext';
-import { countWords } from '@/utils/wordCount';
 
 export interface StatusBarProps {
   className?: string;
@@ -15,14 +14,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({ className = '' }) => {
     if (!editor || !isReady) return;
 
     const updateCounts = () => {
-      const text = editor.getText();
-      const total = countWords(text);
+      const total = editor.storage.characterCount.words();
       setWordCount(total);
 
       const { from, to } = editor.state.selection;
       if (from !== to) {
         const selectedText = editor.state.doc.textBetween(from, to);
-        setSelectedCount(countWords(selectedText));
+        const selectedWords = selectedText.split(/\s+/).filter(word => word !== '').length;
+        setSelectedCount(selectedWords);
       } else {
         setSelectedCount(0);
       }

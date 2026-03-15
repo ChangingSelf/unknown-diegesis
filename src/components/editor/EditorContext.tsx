@@ -2,6 +2,7 @@ import React, { createContext, useContext, useRef, useCallback, useState, useEff
 import { Editor as TiptapEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { CharacterCount } from '@tiptap/extensions';
 import { richTextExtensions } from '@/extensions/RichTextExtensions';
 import GlobalBlockAttributes from '@/extensions/GlobalBlockAttributes';
 import { DiceBlockExtension } from '@/extensions/nodes/DiceBlockExtension';
@@ -62,6 +63,14 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
     }),
     Placeholder.configure({
       placeholder: config.placeholder || '开始输入...',
+    }),
+    CharacterCount.configure({
+      wordCounter: text => {
+        const chinese = text.match(/[\u4e00-\u9fa5]/g) || [];
+        const english = text.match(/[a-zA-Z]+/g) || [];
+        const numbers = text.match(/\d+/g) || [];
+        return chinese.length + english.length + numbers.length;
+      },
     }),
     ...richTextExtensions,
     GlobalBlockAttributes,
