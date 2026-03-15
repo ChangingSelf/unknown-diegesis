@@ -4,13 +4,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import Blockquote from '@tiptap/extension-blockquote';
-import Heading from '@tiptap/extension-heading';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import { richTextExtensions } from '@/extensions/RichTextExtensions';
-import { DocExtension } from '@/extensions/nodes/DocExtension';
+import Document from '@tiptap/extension-document';
 import GlobalBlockAttributes from '@/extensions/GlobalBlockAttributes';
 import { DiceBlockExtension } from '@/extensions/nodes/DiceBlockExtension';
 import { ImageBlockExtension } from '@/extensions/nodes/ImageBlockExtension';
@@ -55,14 +50,15 @@ const EditorContext = createContext<EditorContextType | null>(null);
 
 const getEditorExtensions = (config: EditorConfig = {}) => {
   return [
-    DocExtension,
+    Document.configure({
+      content:
+        '(paragraph | heading | blockquote | bulletList | orderedList | taskList | horizontalRule | diceBlock | imageBlock | layoutRow)+',
+    }),
     StarterKit.configure({
-      heading: false,
-      bulletList: false,
-      orderedList: false,
-      blockquote: false,
-      horizontalRule: false,
       document: false,
+      heading: {
+        levels: [1, 2, 3, 4, 5, 6],
+      },
       undoRedo: {
         newGroupDelay: 0,
       },
@@ -74,13 +70,6 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
     TaskItem.configure({
       nested: true,
     }),
-    Blockquote,
-    Heading.configure({
-      levels: [1, 2, 3, 4, 5, 6],
-    }),
-    BulletList,
-    OrderedList,
-    HorizontalRule,
     ...richTextExtensions,
     GlobalBlockAttributes,
     DiceBlockExtension,

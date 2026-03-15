@@ -1,11 +1,6 @@
 import React from 'react';
 import { generateHTML } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import Heading from '@tiptap/extension-heading';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import Blockquote from '@tiptap/extension-blockquote';
-import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { Block } from '../types/block';
@@ -17,17 +12,14 @@ interface MarkdownRendererProps {
 
 const extensions = [
   StarterKit.configure({
-    heading: false,
-    bulletList: false,
-    orderedList: false,
-    blockquote: false,
-    horizontalRule: false,
+    heading: {
+      levels: [1, 2, 3, 4, 5, 6],
+    },
+    bulletList: {},
+    orderedList: {},
+    blockquote: {},
+    horizontalRule: {},
   }),
-  Heading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
-  BulletList,
-  OrderedList,
-  Blockquote,
-  HorizontalRule,
   TaskList,
   TaskItem.configure({ nested: true }),
 ];

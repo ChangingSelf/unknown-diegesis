@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from '@tiptap/core';
+import Image from '@tiptap/extension-image';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import ImageBlockView from '@/components/ImageBlockView';
 
@@ -10,7 +10,11 @@ declare module '@tiptap/core' {
   }
 }
 
-export const ImageBlockExtension = Node.create({
+/**
+ * 基于官方 Image 扩展的自定义图片块
+ * 继承官方扩展的基础属性解析，增加块级特性和自定义属性
+ */
+export const ImageBlockExtension = Image.extend({
   name: 'imageBlock',
 
   group: 'block',
@@ -23,6 +27,10 @@ export const ImageBlockExtension = Node.create({
 
   addAttributes() {
     return {
+      ...this.parent?.(),
+      // 保留官方属性: src, alt, title, width, height
+
+      // 自定义属性
       id: {
         default: null,
         parseHTML: element => element.getAttribute('data-image-id'),
@@ -31,39 +39,12 @@ export const ImageBlockExtension = Node.create({
           return { 'data-image-id': attributes.id };
         },
       },
-      src: {
-        default: '',
-        parseHTML: element =>
-          element.getAttribute('data-src') || element.querySelector('img')?.src || '',
-        renderHTML: attributes => {
-          return { 'data-src': attributes.src };
-        },
-      },
-      alt: {
-        default: '',
-        parseHTML: element =>
-          element.getAttribute('data-alt') || element.querySelector('img')?.alt || '',
-        renderHTML: attributes => {
-          return { 'data-alt': attributes.alt };
-        },
-      },
       caption: {
         default: '',
         parseHTML: element => element.getAttribute('data-caption') || '',
         renderHTML: attributes => {
           if (!attributes.caption) return {};
           return { 'data-caption': attributes.caption };
-        },
-      },
-      width: {
-        default: null,
-        parseHTML: element => {
-          const wAttr = element.getAttribute('data-width');
-          return wAttr != null ? Number(wAttr) : null;
-        },
-        renderHTML: attributes => {
-          if (attributes.width == null) return {};
-          return { 'data-width': attributes.width };
         },
       },
       layout: {
@@ -77,11 +58,14 @@ export const ImageBlockExtension = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-type="image-block"]' }];
+    return [
+      { tag: 'div[data-type="image-block"]' },
+      { tag: 'img[data-block]' }, // 兼容旧数据
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes({ 'data-type': 'image-block' }, HTMLAttributes)];
+    return ['div', { 'data-type': 'image-block' }, ['img', HTMLAttributes]];
   },
 
   addCommands() {
