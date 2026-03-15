@@ -1,8 +1,6 @@
 import React from 'react';
 import { generateHTML } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
 import { Block } from '../types/block';
 
 interface MarkdownRendererProps {
@@ -20,8 +18,6 @@ const extensions = [
     blockquote: {},
     horizontalRule: {},
   }),
-  TaskList,
-  TaskItem.configure({ nested: true }),
 ];
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ block, onEdit }) => {
