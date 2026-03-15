@@ -1,7 +1,5 @@
 import type { TiptapDocument, TiptapNode } from '@/types/tiptap';
 
-const generateId = () => `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
 export interface PerformanceTestResult {
   renderTime: number;
   memoryUsed: number | null;
@@ -39,49 +37,22 @@ export function createTestDocument(blockCount: number, mixed = false): TiptapDoc
           {
             type: 'layoutColumn',
             attrs: { id: `col-${i}-1`, width: 50 },
-            content: [
-              {
-                type: 'blockWrapper',
-                attrs: { id: `block-${i}-1`, blockType: 'paragraph' },
-                content: [
-                  { type: 'paragraph', content: [{ type: 'text', text: `左侧段落 ${i}` }] },
-                ],
-              },
-            ],
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: `左侧段落 ${i}` }] }],
           },
           {
             type: 'layoutColumn',
             attrs: { id: `col-${i}-2`, width: 50 },
-            content: [
-              {
-                type: 'blockWrapper',
-                attrs: { id: `block-${i}-2`, blockType: 'paragraph' },
-                content: [
-                  { type: 'paragraph', content: [{ type: 'text', text: `右侧段落 ${i}` }] },
-                ],
-              },
-            ],
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: `右侧段落 ${i}` }] }],
           },
         ],
       });
     } else {
       content.push({
-        type: 'blockWrapper',
-        attrs: {
-          id: `block-${i}`,
-          blockType: 'paragraph',
-          created: new Date().toISOString(),
-          modified: new Date().toISOString(),
-        },
+        type: 'paragraph',
         content: [
           {
-            type: 'paragraph',
-            content: [
-              {
-                type: 'text',
-                text: `这是第 ${i + 1} 个测试段落。这是一些测试文本来模拟真实的文档内容。`,
-              },
-            ],
+            type: 'text',
+            text: `这是第 ${i + 1} 个测试段落。这是一些测试文本来模拟真实的文档内容。`,
           },
         ],
       });
@@ -166,5 +137,3 @@ export function logPerformanceResults(results: PerformanceTestResult[]): void {
     );
   }
 }
-
-export { generateId };
