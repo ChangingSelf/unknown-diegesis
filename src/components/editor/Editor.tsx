@@ -1,8 +1,10 @@
 import { useEffect, forwardRef, useImperativeHandle } from 'react';
 import { EditorContent } from '@tiptap/react';
+import DragHandle from '@tiptap/extension-drag-handle-react';
 import type { Editor as TiptapEditor } from '@tiptap/react';
 import { useEditorContext } from './EditorContext';
 import { FloatingToolbar } from './FloatingToolbar';
+import { DragHandleMenu } from './DragHandleMenu';
 
 export interface TiptapEditorRef {
   focus: () => void;
@@ -64,6 +66,9 @@ export const TiptapEditorComponent = forwardRef<TiptapEditorRef, TiptapEditorPro
     return (
       <div className={`editor-container ${className}`} onClick={handleEditorClick}>
         <FloatingToolbar editor={editor} />
+        <DragHandle editor={editor as TiptapEditor}>
+          <DragHandleMenu editor={editor as TiptapEditor} />
+        </DragHandle>
         <EditorContent editor={editor as TiptapEditor} className="tiptap-content" />
       </div>
     );

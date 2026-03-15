@@ -10,6 +10,7 @@ import { ImageBlockExtension } from '@/extensions/nodes/ImageBlockExtension';
 import { LayoutRowExtension } from '@/extensions/nodes/LayoutRowExtension';
 import { LayoutColumnExtension } from '@/extensions/nodes/LayoutColumnExtension';
 import { PasteImageExtension } from '@/extensions/nodes/PasteImageExtension';
+import DragHandle from '@tiptap/extension-drag-handle-react';
 import { DocumentStateManager } from '@/services/DocumentStateManager';
 // Helper to create an empty document content (one empty paragraph)
 const createEmptyContent = (): { type: 'doc'; content: { type: 'paragraph' }[] } => ({
@@ -79,6 +80,8 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
     LayoutRowExtension,
     LayoutColumnExtension,
     PasteImageExtension,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    DragHandle as any,
   ];
 };
 
