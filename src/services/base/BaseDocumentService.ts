@@ -210,9 +210,9 @@ export abstract class BaseDocumentService<TMeta extends DocumentMeta = DocumentM
       // Execute backup at the start unless explicitly skipped
       if (!skipBackup) {
         try {
-          // Backup current file before applying changes. Failures should not block saving.
+          // Backup current workspace before applying changes. Failures should not block saving.
           const backupMgr = new BackupManager();
-          await backupMgr.createBackup(filePath, Date.now());
+          await backupMgr.createBackup(workspacePath, Date.now());
         } catch (backupError) {
           // Do not block the save operation on backup failure
           console.warn('Backup creation failed during save:', backupError);
