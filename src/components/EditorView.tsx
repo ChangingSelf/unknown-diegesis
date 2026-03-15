@@ -9,6 +9,7 @@ interface EditorViewProps {
   placeholder?: string;
   showStatusBar?: boolean;
   onContextReady?: (context: EditorContextType) => void;
+  workspacePath?: string;
 }
 
 /**

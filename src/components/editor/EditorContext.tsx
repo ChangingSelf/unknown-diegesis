@@ -10,6 +10,11 @@ import { LayoutRowExtension } from '@/extensions/nodes/LayoutRowExtension';
 import { LayoutColumnExtension } from '@/extensions/nodes/LayoutColumnExtension';
 import { PasteImageExtension } from '@/extensions/nodes/PasteImageExtension';
 import { DocumentStateManager } from '@/services/DocumentStateManager';
+// Helper to create an empty document content (one empty paragraph)
+const createEmptyContent = (): { type: 'doc'; content: { type: 'paragraph' }[] } => ({
+  type: 'doc',
+  content: [{ type: 'paragraph' }],
+});
 
 export interface EditorConfig {
   placeholder?: string;
@@ -103,7 +108,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     const timerId = setTimeout(() => {
       const newEditor = new TiptapEditor({
         extensions: getEditorExtensions(config),
-        content: config.content || { type: 'doc', content: [] },
+        content: config.content ?? createEmptyContent(),
         editable: config.editable !== false,
         onUpdate: ({ editor }) => {
           if (onContentChangeRef.current) {

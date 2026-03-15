@@ -73,6 +73,10 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({ editor, childr
   return (
     <BubbleMenu
       editor={editor}
+      shouldShow={({ state }) => {
+        const { from, to } = state.selection;
+        return from !== to;
+      }}
       className="flex items-center gap-1 px-2 py-1.5 bg-white rounded-lg shadow-lg border border-gray-200"
     >
       <Tooltip title="加粗 (Ctrl+B)">

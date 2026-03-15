@@ -48,11 +48,27 @@ export const TiptapEditorComponent = forwardRef<TiptapEditorRef, TiptapEditorPro
       );
     }
 
+    const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      // If click is inside EditorContent, let TipTap handle it
+      const editorContent = (e.currentTarget as HTMLElement).querySelector('.tiptap-content');
+      const target = e.target as HTMLElement;
+      if (editorContent?.contains(target)) {
+        return;
+      }
+      // Clicked on blank area -> move focus to end
+      if (editor?.commands?.focus) {
+        editor.commands.focus('end');
+      }
+    };
+
     return (
-      <div className={`editor-container ${className}`}>
-        <FloatingToolbar editor={editor}>
-          <EditorContent editor={editor as TiptapEditor} className="tiptap-content" />
-        </FloatingToolbar>
+      <div className={`editor-container ${className}`} onClick={handleEditorClick}>
+        <EditorContent editor={editor as TiptapEditor} className="tiptap-content" />
+        {editor.state.selection.from !== editor.state.selection.to && (
+          <FloatingToolbar editor={editor}>
+            <div />
+          </FloatingToolbar>
+        )}
       </div>
     );
   }
