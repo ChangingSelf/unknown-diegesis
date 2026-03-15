@@ -56,6 +56,10 @@ export const ImageBlockExtension = Image.extend({
       },
     };
   },
+  resize: {
+    enabled: true,
+    alwaysPreserveAspectRatio: true,
+  },
 
   parseHTML() {
     return [
