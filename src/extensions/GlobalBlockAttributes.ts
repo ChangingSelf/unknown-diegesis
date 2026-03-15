@@ -5,7 +5,7 @@ export default Extension.create({
   addGlobalAttributes() {
     return [
       {
-        types: ['paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList', 'taskList'],
+        types: ['paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList'],
         attributes: {
           id: {
             default: null,

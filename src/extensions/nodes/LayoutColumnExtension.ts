@@ -8,7 +8,7 @@ export const LayoutColumnExtension = Node.create({
   group: 'layoutColumn',
 
   content:
-    '(paragraph | heading | blockquote | bulletList | orderedList | taskList | diceBlock | imageBlock)+',
+    '(paragraph | heading | blockquote | bulletList | orderedList | diceBlock | imageBlock)+',
 
   defining: true,
 

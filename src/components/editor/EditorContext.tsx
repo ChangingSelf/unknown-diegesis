@@ -48,7 +48,6 @@ const EditorContext = createContext<EditorContextType | null>(null);
 const getEditorExtensions = (config: EditorConfig = {}) => {
   return [
     StarterKit.configure({
-      document: false,
       heading: {
         levels: [1, 2, 3, 4, 5, 6],
       },

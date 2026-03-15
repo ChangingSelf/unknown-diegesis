@@ -2,6 +2,7 @@ import { useEffect, forwardRef, useImperativeHandle } from 'react';
 import { EditorContent } from '@tiptap/react';
 import type { Editor as TiptapEditor } from '@tiptap/react';
 import { useEditorContext } from './EditorContext';
+import { FloatingToolbar } from './FloatingToolbar';
 
 export interface TiptapEditorRef {
   focus: () => void;
@@ -49,7 +50,9 @@ export const TiptapEditorComponent = forwardRef<TiptapEditorRef, TiptapEditorPro
 
     return (
       <div className={`editor-container ${className}`}>
-        <EditorContent editor={editor as TiptapEditor} className="tiptap-content" />
+        <FloatingToolbar editor={editor}>
+          <EditorContent editor={editor as TiptapEditor} className="tiptap-content" />
+        </FloatingToolbar>
       </div>
     );
   }
