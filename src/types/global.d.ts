@@ -70,6 +70,9 @@ declare global {
         success: boolean;
         error?: string;
       }>;
+      workspaceSyncPath: (path: string) => Promise<{
+        success: boolean;
+      }>;
       workspaceReadDir: (path: string) => Promise<{
         success: boolean;
         files?: string[];
@@ -112,6 +115,7 @@ declare global {
         error?: string;
       }>;
       prompt: (message: string, defaultValue?: string) => Promise<string | null>;
+      dialogShowError: (title: string, message: string) => Promise<{ success: boolean }>;
       configGetRecentWorkspaces: () => Promise<{
         success: boolean;
         data?: unknown[];
@@ -121,6 +125,16 @@ declare global {
         success: boolean;
         error?: string;
       }>;
+      imageSave: (
+        workspacePath: string,
+        base64Data: string,
+        originalName: string
+      ) => Promise<{
+        success: boolean;
+        relativePath?: string;
+        error?: string;
+      }>;
     };
+    __WORKSPACE_PATH__: string | null;
   }
 }

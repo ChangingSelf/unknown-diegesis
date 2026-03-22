@@ -212,6 +212,7 @@ function App() {
     if (result.workspace) {
       recentWorkspacesServiceRef.current.addWorkspace(result.workspace.path, result.workspace.name);
       setWorkspace(result.workspace);
+      window.__WORKSPACE_PATH__ = result.workspace.path;
       setViewMode('workspace');
       setCurrentChapterId(null);
       setCurrentDocumentData(null);
@@ -238,6 +239,7 @@ function App() {
     if (result.workspace) {
       recentWorkspacesServiceRef.current.addWorkspace(result.workspace.path, result.workspace.name);
       setWorkspace(result.workspace);
+      window.__WORKSPACE_PATH__ = result.workspace.path;
       setViewMode('workspace');
     }
   };
@@ -251,6 +253,8 @@ function App() {
     if (result.workspace) {
       recentWorkspacesServiceRef.current.addWorkspace(result.workspace.path, result.workspace.name);
       setWorkspace(result.workspace);
+      window.__WORKSPACE_PATH__ = result.workspace.path;
+      window.electronAPI?.workspaceSyncPath(result.workspace.path);
       setViewMode('workspace');
       setCurrentChapterId(null);
       setCurrentDocumentData(null);
@@ -265,6 +269,7 @@ function App() {
   const handleCloseWorkspace = () => {
     workspaceManagerRef.current.closeWorkspace();
     setWorkspace(null);
+    window.__WORKSPACE_PATH__ = null;
     setCurrentChapterId(null);
     setCurrentDocumentData(null);
     setDocumentContent(createEmptyDocument());

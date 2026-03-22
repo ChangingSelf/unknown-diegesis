@@ -10,6 +10,15 @@ type ImageLayout = 'full' | 'left' | 'right' | 'center';
 
 const metadataManager = new ImageMetadataManager();
 
+const getDisplaySrc = (src: string) => {
+  if (!src) return src;
+  if (/^(https?:|data:|blob:|workspace:)/.test(src)) return src;
+  if (src.startsWith('./')) {
+    return `workspace://${src.slice(2)}`;
+  }
+  return src;
+};
+
 const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: NodeViewProps) => {
   const [isEditing, setIsEditing] = useState(!node.attrs.src);
   const [tempSrc, setTempSrc] = useState(node.attrs.src || '');
@@ -39,7 +48,7 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
           alignment: layout === 'full' ? 'center' : layout,
         });
       };
-      img.src = src;
+      img.src = getDisplaySrc(src);
     }
   }, [src, id, alt, caption, layout]);
 
@@ -202,7 +211,7 @@ const ImageBlockView = memo(({ node, updateAttributes, selected, deleteNode }: N
         {src ? (
           <div className={`inline-block relative group ${selected ? 'selected' : ''}`}>
             <img
-              src={src}
+              src={getDisplaySrc(src)}
               alt={alt || ''}
               className={`max-w-full h-auto ${layout === 'center' ? 'mx-auto' : ''}`}
             />

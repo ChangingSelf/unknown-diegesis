@@ -1,15 +1,69 @@
-import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog, protocol, net } from 'electron';
 import { join, dirname } from 'path';
+import { pathToFileURL } from 'url';
 import { readFile, writeFile, stat, mkdir, readdir, rm, rename, copyFile } from 'fs/promises';
 import { existsSync, mkdirSync, copyFileSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { WORKSPACE_SCHEMA_VERSION, INDEX_SCHEMA_VERSION } from '../src/constants/versions';
 
+// Global variable to store the current workspace path
+declare global {
+  var currentWorkspacePath: string | null;
+}
+
 const isDev = process.env.NODE_ENV === 'development';
+
+// Register workspace protocol scheme BEFORE app.whenReady()
+// This is required by Electron for custom protocols to work properly
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'workspace',
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+]);
 
 function normalizePath(path: string): string {
   return path.replace(/\//g, '\\');
+}
+
+function registerWorkspaceProtocol() {
+  protocol.handle('workspace', request => {
+    const url = request.url;
+    console.log('[workspace://] request.url:', url);
+
+    let relativePath = url.slice('workspace://'.length);
+
+    // Decode URL encoding (e.g., %20 -> space, %2F -> /)
+    try {
+      relativePath = decodeURIComponent(relativePath);
+    } catch (e) {
+      console.warn('[workspace://] decodeURIComponent failed:', e);
+    }
+
+    console.log('[workspace://] relativePath:', relativePath);
+
+    const workspacePath = global.currentWorkspacePath;
+    console.log('[workspace://] workspacePath:', workspacePath);
+
+    if (!workspacePath) {
+      console.error('[workspace://] No workspace path set! Cannot resolve:', url);
+      return new Response(null, { status: 404 });
+    }
+
+    const absolutePath = join(workspacePath, relativePath);
+    console.log('[workspace://] absolutePath:', absolutePath);
+
+    // Use pathToFileURL to properly encode Windows paths (handles drive letters, colons, etc.)
+    const fileUrl = pathToFileURL(absolutePath).href;
+    console.log('[workspace://] fileUrl:', fileUrl);
+    return net.fetch(fileUrl);
+  });
 }
 
 // 注册文件操作 IPC handlers
@@ -81,6 +135,7 @@ function registerFileHandlers() {
         return { success: false, error: 'User canceled' };
       }
 
+      global.currentWorkspacePath = result.filePaths[0];
       return { success: true, path: result.filePaths[0] };
     } catch (error) {
       console.error('Error opening workspace:', error);
@@ -177,11 +232,17 @@ function registerFileHandlers() {
       );
       await writeFile(join(path, '.index', 'assets.json'), JSON.stringify(assetsIndex, null, 2));
 
+      global.currentWorkspacePath = path;
       return { success: true };
     } catch (error) {
       console.error('Error creating workspace:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
+  });
+
+  ipcMain.handle('workspace:syncPath', async (_, { path }: { path: string }) => {
+    global.currentWorkspacePath = path;
+    return { success: true };
   });
 
   // 读取目录内容
@@ -287,6 +348,60 @@ function registerFileHandlers() {
         return { success: true };
       } catch (error) {
         console.error('Error writing file:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    }
+  );
+
+  // image:save
+  ipcMain.handle(
+    'image:save',
+    async (
+      _,
+      {
+        workspacePath,
+        base64Data,
+        originalName,
+      }: { workspacePath: string; base64Data: string; originalName: string }
+    ) => {
+      try {
+        // 1. Generate UUID filename with original extension
+        let ext = '';
+        const dotIdx = originalName.lastIndexOf('.');
+        if (dotIdx !== -1) {
+          ext = originalName.substring(dotIdx);
+        }
+        const filename = randomUUID() + ext;
+
+        // 2. Build full path: workspacePath/assets/images/illustrations/filename
+        const targetDir = join(workspacePath, 'assets', 'images', 'illustrations');
+        const fullPath = join(targetDir, filename);
+        const normalizedPath = normalizePath(fullPath);
+
+        // 3. Ensure directory exists
+        const parentDir = join(normalizedPath, '..');
+        if (!existsSync(parentDir)) {
+          await mkdir(parentDir, { recursive: true });
+        }
+
+        // 4. Strip data URL prefix if present
+        let data = base64Data;
+        if (data.startsWith('data:')) {
+          const comma = data.indexOf(',');
+          if (comma !== -1) {
+            data = data.substring(comma + 1);
+          }
+        }
+
+        // 5. Decode base64 and write file
+        const buffer = Buffer.from(data, 'base64');
+        await writeFile(normalizedPath, buffer);
+
+        // 6. Return relative path
+        const relativePath = `./assets/images/illustrations/${filename}`;
+        return { success: true, relativePath };
+      } catch (error) {
+        console.error('Error saving image:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
       }
     }
@@ -489,6 +604,19 @@ function registerFileHandlers() {
     }
   );
 
+  ipcMain.handle(
+    'dialog:showError',
+    async (_, { title, message }: { title: string; message: string }) => {
+      await dialog.showMessageBox({
+        type: 'error',
+        title,
+        message,
+        buttons: ['确定'],
+      });
+      return { success: true };
+    }
+  );
+
   // 配置存储 IPC handlers
   const userDataPath = app.getPath('userData');
   const configPath = join(userDataPath, 'config');
@@ -560,6 +688,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // 注册文件操作 IPC handlers
   registerFileHandlers();
+  registerWorkspaceProtocol();
 
   createWindow();
 

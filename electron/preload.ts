@@ -16,11 +16,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fileStat: (path: string) => ipcRenderer.invoke('file:stat', { path }),
   fileExportWord: (document: unknown, title?: string) =>
     ipcRenderer.invoke('file:exportWord', { document, title }),
+  imageSave: (workspacePath: string, base64Data: string, originalName: string) =>
+    ipcRenderer.invoke('image:save', { workspacePath, base64Data, originalName }),
 
   // 工作区操作 API
   workspaceOpen: () => ipcRenderer.invoke('workspace:open'),
   workspaceCreate: (path: string, name: string) =>
     ipcRenderer.invoke('workspace:create', { path, name }),
+  workspaceSyncPath: (path: string) => ipcRenderer.invoke('workspace:syncPath', { path }),
   workspaceReadDir: (path: string) => ipcRenderer.invoke('workspace:readDir', { path }),
   workspaceMkdir: (path: string) => ipcRenderer.invoke('workspace:mkdir', { path }),
   workspaceDelete: (path: string) => ipcRenderer.invoke('workspace:delete', { path }),
@@ -33,6 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('workspace:writeFile', { filePath, content, isBase64 }),
   prompt: (message: string, defaultValue?: string) =>
     ipcRenderer.invoke('prompt', { message, defaultValue }),
+  dialogShowError: (title: string, message: string) =>
+    ipcRenderer.invoke('dialog:showError', { title, message }),
 
   // 配置存储 API
   configGetRecentWorkspaces: () => ipcRenderer.invoke('config:getRecentWorkspaces'),
@@ -76,12 +81,18 @@ declare global {
         document: unknown,
         title?: string
       ) => Promise<{ success: boolean; path?: string; error?: string }>;
+      imageSave: (
+        workspacePath: string,
+        base64Data: string,
+        originalName: string
+      ) => Promise<{ success: boolean; relativePath?: string; error?: string }>;
       // 工作区操作
       workspaceOpen: () => Promise<{ success: boolean; path?: string; error?: string }>;
       workspaceCreate: (
         path: string,
         name: string
       ) => Promise<{ success: boolean; error?: string }>;
+      workspaceSyncPath: (path: string) => Promise<{ success: boolean }>;
       workspaceReadDir: (
         path: string
       ) => Promise<{ success: boolean; files?: string[]; error?: string }>;
@@ -107,6 +118,7 @@ declare global {
         error?: string;
       }>;
       prompt: (message: string, defaultValue?: string) => Promise<string | null>;
+      dialogShowError: (title: string, message: string) => Promise<{ success: boolean }>;
       configGetRecentWorkspaces: () => Promise<{
         success: boolean;
         data?: unknown[];

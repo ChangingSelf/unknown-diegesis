@@ -54,6 +54,8 @@ const EditorContext = createContext<EditorContextType | null>(null);
 
 const getEditorExtensions = (config: EditorConfig = {}) => {
   return [
+    // PasteImageExtension must be first to intercept image paste events before StarterKit
+    PasteImageExtension,
     StarterKit.configure({
       heading: {
         levels: [1, 2, 3, 4, 5, 6],
@@ -61,6 +63,7 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
       undoRedo: {
         newGroupDelay: 0,
       },
+      dropcursor: false, // Disable default drop cursor to prevent interference with image handling
     }),
     Placeholder.configure({
       placeholder: config.placeholder || '开始输入...',
@@ -79,7 +82,6 @@ const getEditorExtensions = (config: EditorConfig = {}) => {
     ImageBlockExtension,
     LayoutRowExtension,
     LayoutColumnExtension,
-    PasteImageExtension,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     DragHandle as any,
   ];
@@ -122,6 +124,132 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
         extensions: getEditorExtensions(config),
         content: config.content ?? createEmptyContent(),
         editable: config.editable !== false,
+        editorProps: {
+          handlePaste: (view, event) => {
+            const files = event.clipboardData?.files;
+            console.log('[handlePaste] triggered, files:', files?.length ?? 0);
+
+            if (files && files.length > 0) {
+              for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                  const reader = new FileReader();
+                  reader.onload = async () => {
+                    const base64Data = reader.result as string;
+                    const workspacePath = (window as any).__WORKSPACE_PATH__;
+
+                    if (!workspacePath) {
+                      await (window as any).electronAPI.dialogShowError(
+                        '无法保存图片',
+                        '请先打开工作区，再粘贴图片。'
+                      );
+                      return;
+                    }
+
+                    try {
+                      const result = await (window as any).electronAPI.imageSave(
+                        workspacePath,
+                        base64Data,
+                        file.name
+                      );
+
+                      if (result.success && result.relativePath) {
+                        view.dispatch(
+                          view.state.tr.replaceSelectionWith(
+                            view.state.schema.nodes.imageBlock.create({
+                              src: result.relativePath,
+                              alt: file.name || 'Pasted image',
+                              originalName: file.name,
+                            })
+                          )
+                        );
+                        return;
+                      } else {
+                        await (window as any).electronAPI.dialogShowError(
+                          '保存图片失败',
+                          result.error || '未知错误'
+                        );
+                        return;
+                      }
+                    } catch (error) {
+                      await (window as any).electronAPI.dialogShowError(
+                        '保存图片失败',
+                        error instanceof Error ? error.message : '未知错误'
+                      );
+                      return;
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }
+              return true; // Prevent default paste for files
+            }
+            return false; // Let default paste continue for text
+          },
+          handleDrop: (view, event, _slice, _moved) => {
+            const files = event.dataTransfer?.files;
+            console.log('[handleDrop] triggered, files:', files?.length ?? 0);
+
+            if (files && files.length > 0) {
+              const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+              const pos = coordinates?.pos ?? view.state.selection.from;
+
+              for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                  const reader = new FileReader();
+                  reader.onload = async () => {
+                    const base64Data = reader.result as string;
+                    const workspacePath = (window as any).__WORKSPACE_PATH__;
+
+                    if (!workspacePath) {
+                      await (window as any).electronAPI.dialogShowError(
+                        '无法保存图片',
+                        '请先打开工作区，再拖拽图片。'
+                      );
+                      return;
+                    }
+
+                    try {
+                      const result = await (window as any).electronAPI.imageSave(
+                        workspacePath,
+                        base64Data,
+                        file.name
+                      );
+
+                      if (result.success && result.relativePath) {
+                        view.dispatch(
+                          view.state.tr.insert(
+                            pos,
+                            view.state.schema.nodes.imageBlock.create({
+                              src: result.relativePath,
+                              alt: file.name || 'Dropped image',
+                              originalName: file.name,
+                            })
+                          )
+                        );
+                        return;
+                      } else {
+                        await (window as any).electronAPI.dialogShowError(
+                          '保存图片失败',
+                          result.error || '未知错误'
+                        );
+                        return;
+                      }
+                    } catch (error) {
+                      await (window as any).electronAPI.dialogShowError(
+                        '保存图片失败',
+                        error instanceof Error ? error.message : '未知错误'
+                      );
+                      return;
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }
+              return true; // Prevent default drop for files
+            }
+            return false; // Let default drop continue
+          },
+        },
         onUpdate: ({ editor }) => {
           if (onContentChangeRef.current) {
             onContentChangeRef.current(editor.getJSON());
