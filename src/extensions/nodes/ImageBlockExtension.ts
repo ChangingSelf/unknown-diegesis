@@ -54,6 +54,14 @@ export const ImageBlockExtension = Image.extend({
           return { 'data-layout': attributes.layout };
         },
       },
+      originalName: {
+        default: '',
+        parseHTML: element => element.getAttribute('data-original-name') || '',
+        renderHTML: attributes => {
+          if (!attributes.originalName) return {};
+          return { 'data-original-name': attributes.originalName };
+        },
+      },
     };
   },
   resize: {
